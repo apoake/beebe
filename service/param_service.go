@@ -9,7 +9,6 @@ type ParamService interface {
 }
 
 type ParamActionService interface {
-	GetAllByProjectId(projectId *int64, start *int64, limit *int64) (*[]model.ParameterAction, error)
 }
 
 type ParamServiceImpl struct{}

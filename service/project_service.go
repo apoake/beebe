@@ -51,4 +51,31 @@ func (projectService *ProjectServiceImpl) GetProjectsPage(start *int64, limit *i
 	return projects, err
 }
 
+type ProjectActionService interface {
+	GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error)
+	CreateProjectAction(projectAction *model.ProjectAction) error
+	UpdateProjectAction(projectAction *model.ProjectAction) error
+}
 
+type ProjectActionServiceImpl struct {}
+
+func (projectActionService *ProjectServiceImpl) GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error) {
+	projectActions := make([]model.ProjectAction, *limit)
+	err := DB().Offset(start).Limit(limit).Where("project_id = ?", projectId).Find(projectActions).Error
+	return projectActions, err
+}
+
+func (projectActionService *ProjectServiceImpl) CreateProjectAction(projectAction *model.ProjectAction) error {
+	return DB().Create(projectAction).Error
+}
+
+func (projectActionService *ProjectServiceImpl) UpdateProjectAction(projectAction *model.ProjectAction) error {
+	dbProjectAction := new(model.ProjectAction)
+	dbProjectAction.ActionId = projectAction.ActionId
+	DB().Find(dbProjectAction).Find()
+	dbProjectAction.ActionName = projectAction.ActionName
+	dbProjectAction.ActionDesc = projectAction.ActionDesc
+	dbProjectAction.RequestType = projectAction.RequestType
+	dbProjectAction.RequestUrl = projectAction.RequestUrl
+	return DB().Save(dbProjectAction).Error
+}
