@@ -29,3 +29,17 @@ type ProjectUserMapping struct {
 func (ProjectUserMapping) TableName() string {
 	return "project_user_mapping"
 }
+
+type ProjectAction struct {
+	model.Model
+	ActionId 			int64		`gorm:"primary_key" json:"actionId"`
+	ActionName			string		`grom:"column:action_name"`
+	ActionDesc			string		`grom:"column:action_desc"`
+	ProjectId			int64		`grom:"column:project_id"`
+	RequestType 		string		`grom:"column:request_type"`
+	RequestUrl			string		`grom:"column:request_url"`
+}
+
+func (ProjectAction) TableName() string {
+	return "project_action"
+}

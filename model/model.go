@@ -1,11 +1,11 @@
 package model
 
-//import "time"
+import "time"
 
 // Base Model's definition
 type Model struct {
-	//CreateTime 	time.Time	`gorm:"column:create_time" json:"createTime""`
-	//UpdateTime 	time.Time	`gorm:"column:update_time" json:"updateTime"`
+	CreateTime 	time.Time	`gorm:"column:create_time" json:"createTime""`
+	UpdateTime 	time.Time	`gorm:"column:update_time" json:"updateTime"`
 }
 
 type Vo struct {
