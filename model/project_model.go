@@ -1,9 +1,8 @@
-package project
+package model
 
-import "beebe/model"
 
 type Project struct {
-	model.Model
+	Model
 	ID           int64			`gorm:"primary_key" json:"id"`
 	Version      string        	`grom:"column:"version" json:"version"`
 	Name         string        	`grom:"column:"name" json:"name"`
@@ -19,7 +18,7 @@ func (Project) TableName() string {
 }
 
 type ProjectUserMapping struct {
-	model.Model
+	Model
 	ProjectId   int64        `grom:"column:"project_id" json:"projectId"`
 	TeamId		int16		 `grom:"column:"team_id" json:"teamId"`
 	UserId      int64        `grom:"column:"user_id" json:"userId"`
@@ -31,7 +30,7 @@ func (ProjectUserMapping) TableName() string {
 }
 
 type ProjectAction struct {
-	model.Model
+	Model
 	ActionId 			int64		`gorm:"primary_key" json:"actionId"`
 	ActionName			string		`grom:"column:action_name"`
 	ActionDesc			string		`grom:"column:action_desc"`
