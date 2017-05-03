@@ -2,7 +2,19 @@ package service
 
 import (
 	"beebe/model"
+	"github.com/pkg/errors"
 )
+
+var projectActionService = new(ProjectActionServiceImpl)
+var projectService = new(ProjectServiceImpl)
+
+func ProjectActionService() *ProjectActionServiceImpl {
+	return projectActionService
+}
+
+func ProjectService() *ProjectServiceImpl {
+	return projectService
+}
 
 type ProjectService interface{
 	AddProject(project *model.Project) error
@@ -52,24 +64,33 @@ func (projectService *ProjectServiceImpl) GetProjectsPage(start *int64, limit *i
 }
 
 type ProjectActionService interface {
+	Get(actionId *int64) (*model.ProjectAction, error)
 	GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error)
 	CreateProjectAction(projectAction *model.ProjectAction) error
 	UpdateProjectAction(projectAction *model.ProjectAction) error
+	Delete(actionId *int64) error
 }
 
 type ProjectActionServiceImpl struct {}
 
-func (projectActionService *ProjectServiceImpl) GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error) {
+func (projectActionService *ProjectActionServiceImpl) Get(actionId *int64) (*model.ProjectAction, error) {
+	projectAction := new(model.ProjectAction)
+	projectAction.ActionId = *actionId
+	err := DB().First(projectAction).Error
+	return projectAction, err
+}
+
+func (projectActionService *ProjectActionServiceImpl) GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error) {
 	projectActions := make([]model.ProjectAction, *limit)
 	err := DB().Offset(start).Limit(limit).Where("project_id = ?", projectId).Find(projectActions).Error
 	return projectActions, err
 }
 
-func (projectActionService *ProjectServiceImpl) CreateProjectAction(projectAction *model.ProjectAction) error {
+func (projectActionService *ProjectActionServiceImpl) CreateProjectAction(projectAction *model.ProjectAction) error {
 	return DB().Create(projectAction).Error
 }
 
-func (projectActionService *ProjectServiceImpl) UpdateProjectAction(projectAction *model.ProjectAction) error {
+func (projectActionService *ProjectActionServiceImpl) UpdateProjectAction(projectAction *model.ProjectAction) error {
 	dbProjectAction := new(model.ProjectAction)
 	dbProjectAction.ActionId = projectAction.ActionId
 	DB().Find(dbProjectAction).Find()
@@ -78,4 +99,19 @@ func (projectActionService *ProjectServiceImpl) UpdateProjectAction(projectActio
 	dbProjectAction.RequestType = projectAction.RequestType
 	dbProjectAction.RequestUrl = projectAction.RequestUrl
 	return DB().Save(dbProjectAction).Error
+}
+
+func (projectActionService *ProjectActionServiceImpl) Delete(actionId *int64) (err error) {
+	tx := DB().Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	projectAction := new(model.ProjectAction)
+	projectAction.ActionId = *actionId
+	tmp := tx.Delete(projectAction)
+	if err = tmp.Error; err != nil {
+		return err
+	}
 }
