@@ -19,7 +19,7 @@ type Parameter struct {
 	ID             int64         `gorm:"primary_key" json:"id"`
 	Name           string        `grom:"column:"name" json:"name"`
 	Identifier     string        `grom:"column:"identifier" json:"identifier"`
-	DataType       string        `grom:"column:"data_type" json:"dataType"`
+	DataType       int8        `grom:"column:"data_type" json:"dataType"`
 	Remark         string        `grom:"column:"remark" json:"remark"`
 	ExpressionType int8          `grom:"column:"expression_type" json:"expressionType"`
 	Expression     string        `grom:"column:"expression" json:"expression"`

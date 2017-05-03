@@ -19,9 +19,9 @@ func (userService *UserServiceImpl) FindUserByUserId(userId *int64) *model.User{
 	return user
 }
 
-func (userService *UserServiceImpl) Login(loginUser *model.User) (*model.User, bool) {
+func (userService *UserServiceImpl) Login(loginUser *model.User) (*model.User, error) {
 	user := new(model.User)
-	err := DB().Where("name = ? and password = ?", loginUser.Name, loginUser.Password).Find(&user).Error
+	err := DB().Where("name = ? and password = ?", loginUser.Name, loginUser.Password).Find(user).Error
 	return user, err
 }
 

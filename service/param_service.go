@@ -11,13 +11,18 @@ import (
 
 var paramService = new(ParamServiceImpl)
 var paramActionService = new(ParamActionServiceImpl)
+var complexParameterService = new(ComplexParameterServiceImpl)
 
-func ParamService() *ParamServiceImpl {
+func GetParamService() *ParamServiceImpl {
 	return paramService
 }
 
-func ParamActionService() *ParamActionServiceImpl {
+func GetParamActionService() *ParamActionServiceImpl {
 	return paramActionService
+}
+
+func GetComplexParameterService() *ComplexParameterServiceImpl {
+	return complexParameterService
 }
 
 func getDB(db *gorm.DB) *gorm.DB {
@@ -70,8 +75,7 @@ func (paramService *ParamServiceImpl) Delete(parameterIds *[]int64, db *gorm.DB)
 type ComplexParameterService interface {
 	DeleteByParameterIds(paramIds *[]int64, db *gorm.DB) error
 	DeleteByActionId(actionId *int64, db *gorm.DB) error
-	//Create(complexParameter *model.ComplexParameter) error
-	//GetByParameterIds(paramIds *[]int64) (*[]model.ComplexParameter, error)
+	GetByActionId(actionId *int64, db *gorm.DB) (*[] model.ComplexParameter, error)
 }
 
 type ComplexParameterServiceImpl struct {}
@@ -84,6 +88,12 @@ func (complexParameterService *ComplexParameterServiceImpl) DeleteByActionId(act
 	return getDB(db).Where("active_id = ?", actionId).Delete(model.ComplexParameter{}).Error
 }
 
+func (complexParameterService *ComplexParameterServiceImpl) GetByActionId(actionId *int64, db *gorm.DB) (*[] model.ComplexParameter, error) {
+	complexArr := make([]model.ComplexParameter, 0)
+	err := getDB(db).Where("action_id = ?", actionId).Find(&complexArr).Error
+	return &complexArr, err
+}
+
 // ParamServiceImpl
 type ParamActionServiceImpl struct{}
 
@@ -91,6 +101,7 @@ type ParamActionServiceImpl struct{}
 type ParamActionService interface {
 	Get(actionId *int64) (*model.ParameterAction, error)
 	Save(parameterAction *model.ParameterActionVo) error
+	DeleteByActionId(actionId *int64, db *gorm.DB) error
 }
 // projectServiceImpl
 func (paramActionService *ParamActionServiceImpl) Get(actionId *int64) (*model.ParameterAction, error) {
@@ -103,24 +114,24 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	if parameterAction.ActionId < 1 {
 		return errors.New("params[actionId] is empty")
 	}
-	projectAction, err := ProjectActionService().Get(parameterAction.ActionId)
+	projectAction, err := GetProjectActionService().Get(&parameterAction.ActionId)
 	if err != nil {
 		return err
 	}
 	if projectAction == nil {
-		return errors.New("not find project_action by actionId: " + strconv.Itoa(parameterAction.ActionId))
+		return errors.New("not find project_action by actionId: " + strconv.FormatInt(parameterAction.ActionId, 10))
 	}
 	requestParams := parameterAction.RequestParameter
-	if err := ParamService().CheckParams(requestParams); err != nil {
+	if err := GetParamService().CheckParams(requestParams); err != nil {
 		return err
 	}
 	responseParams := parameterAction.ResponseParameter
-	if err := ParamService().CheckParams(responseParams); err != nil {
+	if err := GetParamService().CheckParams(responseParams); err != nil {
 		return err
 	}
 	var dbParamAction *model.ParameterAction
 	if parameterAction.ActionId > 0 {
-		dbParamAction, erro = paramActionService.Get(parameterAction.ActionId)
+		dbParamAction, erro = paramActionService.Get(&parameterAction.ActionId)
 	} else {
 		dbParamAction = new(model.ParameterAction)
 	}
@@ -163,11 +174,11 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	if err != nil {
 		return err
 	}
-	parameterAction.RequestId = topParameter.ID
-	parameterAction.ResponseId = topResponseParameter.ID
-	parameterAction.RequestParameter = string(requestArr)
-	parameterAction.ResponseParameter = string(responseArr)
-	if err := tx.Save(parameterAction).Error; err != nil {
+	dbParamAction.RequestId = topParameter.ID
+	dbParamAction.ResponseId = topResponseParameter.ID
+	dbParamAction.RequestParameter = string(requestArr)
+	dbParamAction.ResponseParameter = string(responseArr)
+	if err := tx.Save(dbParamAction).Error; err != nil {
 		return err
 	}
 	tx.Commit()
@@ -193,5 +204,42 @@ func saveSubParam(tx *gorm.DB, actionId int64, parentId int64, subParams *[]mode
 }
 
 
+func (paramActionService *ParamActionServiceImpl) DeleteByActionId(actionId *int64, db *gorm.DB) error {
+	database := getDB(db)
+	comArr, err := GetComplexParameterService().GetByActionId(actionId, database)
+	if err != nil {
+		return err
+	}
+	parameterIds := getParameterIds(comArr)
+	if len(*parameterIds) > 0 {
+		if err := GetParamService().Delete(parameterIds, database); err != nil {
+			return err
+		}
+	}
+	if err := GetComplexParameterService().DeleteByActionId(actionId, database); err != nil {
+		return err
+	}
+	if err := database.Where("action_id = ?", actionId).Delete(&model.ParameterAction{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
 
+
+func getParameterIds(complexParams *[]model.ComplexParameter) *[]int64 {
+	arr := *complexParams
+	comMap := make(map[int64] int64)
+	result := make([]int64, 0, len(arr) + 2)
+	for _, complexParam := range arr {
+		if _, ok := comMap[complexParam.ParameterId]; !ok {
+			comMap[complexParam.ParameterId] = complexParam.ParameterId
+			result = append(result, complexParam.ParameterId)
+		}
+		if _, ok:= comMap[complexParam.SubParameterId]; !ok {
+			comMap[complexParam.SubParameterId] = complexParam.SubParameterId
+			result = append(result, complexParam.SubParameterId)
+		}
+	}
+	return &result
+}
 

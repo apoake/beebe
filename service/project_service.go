@@ -2,17 +2,16 @@ package service
 
 import (
 	"beebe/model"
-	"github.com/pkg/errors"
 )
 
 var projectActionService = new(ProjectActionServiceImpl)
 var projectService = new(ProjectServiceImpl)
 
-func ProjectActionService() *ProjectActionServiceImpl {
+func GetProjectActionService() *ProjectActionServiceImpl {
 	return projectActionService
 }
 
-func ProjectService() *ProjectServiceImpl {
+func GetProjectService() *ProjectServiceImpl {
 	return projectService
 }
 
@@ -60,7 +59,7 @@ func (projectService *ProjectServiceImpl) GetProject(projectId int64) (*model.Pr
 func (projectService *ProjectServiceImpl) GetProjectsPage(start *int64, limit *int64) (*[]model.Project, error) {
 	projects := make([]model.Project, *limit)
 	err := DB().Offset(start).Limit(limit).Find(projects).Error
-	return projects, err
+	return &projects, err
 }
 
 type ProjectActionService interface {
@@ -83,7 +82,7 @@ func (projectActionService *ProjectActionServiceImpl) Get(actionId *int64) (*mod
 func (projectActionService *ProjectActionServiceImpl) GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error) {
 	projectActions := make([]model.ProjectAction, *limit)
 	err := DB().Offset(start).Limit(limit).Where("project_id = ?", projectId).Find(projectActions).Error
-	return projectActions, err
+	return &projectActions, err
 }
 
 func (projectActionService *ProjectActionServiceImpl) CreateProjectAction(projectAction *model.ProjectAction) error {
@@ -93,7 +92,9 @@ func (projectActionService *ProjectActionServiceImpl) CreateProjectAction(projec
 func (projectActionService *ProjectActionServiceImpl) UpdateProjectAction(projectAction *model.ProjectAction) error {
 	dbProjectAction := new(model.ProjectAction)
 	dbProjectAction.ActionId = projectAction.ActionId
-	DB().Find(dbProjectAction).Find()
+	if err := DB().Find(dbProjectAction).Find(dbProjectAction).Error; err != nil {
+		return err
+	}
 	dbProjectAction.ActionName = projectAction.ActionName
 	dbProjectAction.ActionDesc = projectAction.ActionDesc
 	dbProjectAction.RequestType = projectAction.RequestType
@@ -114,4 +115,8 @@ func (projectActionService *ProjectActionServiceImpl) Delete(actionId *int64) (e
 	if err = tmp.Error; err != nil {
 		return err
 	}
+	if err = paramActionService.DeleteByActionId(actionId, tx); err != nil {
+		return err
+	}
+	return nil
 }
