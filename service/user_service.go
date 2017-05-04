@@ -4,6 +4,12 @@ import (
 	"beebe/model"
 )
 
+var userService *UserServiceImpl = new(UserServiceImpl)
+
+func GetUserService() *UserServiceImpl {
+	return userService
+}
+
 type UserService interface {
 	FindUserByUserId(userId *int64) *model.User;
 	Login(loginUser *model.User) (*model.User, error);

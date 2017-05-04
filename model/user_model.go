@@ -4,6 +4,10 @@ import (
 	"time"
 )
 
+const (
+	USER_SESSION_KEY = "user"
+)
+
 type User struct {
 	Model
 	ID				int64		`gorm:"primary_key" json:"id"`

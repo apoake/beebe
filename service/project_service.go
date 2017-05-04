@@ -20,7 +20,8 @@ type ProjectService interface{
 	UpdateProject(project *model.Project) error
 	DeleteProject(projectId *int64) error
 	GetProject(projectId *int64) (*model.Project, error)
-	GetProjectsPage(start *int64, limit *int64) (*[]model.Project, error)
+	GetProjectsPage(key string, start *int64, limit *int64) (*[]model.Project, error)
+	GetProjectByUser(userIds *[]int64) (*[]model.Project, error)
 }
 
 type ProjectServiceImpl struct{}
@@ -56,11 +57,23 @@ func (projectService *ProjectServiceImpl) GetProject(projectId int64) (*model.Pr
 	return project, err
 }
 
-func (projectService *ProjectServiceImpl) GetProjectsPage(start *int64, limit *int64) (*[]model.Project, error) {
-	projects := make([]model.Project, *limit)
-	err := DB().Offset(start).Limit(limit).Find(projects).Error
+func (projectService *ProjectServiceImpl) GetProjectsPage(key string, start *int64, limit *int64) (*[]model.Project, error) {
+	projects := make([]model.Project, 0, *limit)
+	db := DB().Select("name, introduction")
+	if key != "" {
+		db = db.Where("is_public = 1 and name LIKE ?", "%" + key + "%")
+	}
+	err := db.Offset(*start).Limit(*limit).Find(&projects).Error
 	return &projects, err
 }
+
+func (projectService *ProjectServiceImpl) GetProjectByUser(userIds *[]int64) (*[]model.Project, error) {
+	projects := make([]model.Project, 0, 5)
+	err := DB().Where("user_id in (?)", userIds).Find(projects).Error
+	return projects, err
+}
+
+
 
 type ProjectActionService interface {
 	Get(actionId *int64) (*model.ProjectAction, error)
