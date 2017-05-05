@@ -41,15 +41,16 @@ func (Role) TableName() string {
 	return "role"
 }
 
-type RoleUser struct {
+type TeamUser struct {
 	Model
 	UserId 			int64		`grom:"column:"user_id" json:"userId"`
 	TeamId			int64		`grom:"column:"team_id" json:"teamId"`
 	RoleId			int64		`grom:"column:"role_Id" json:roleId"`
+	ProjectId 		int64		`grom:"column:"project_id" json:projectId"`
 }
 
-func (RoleUser) TableName() string {
-	return "role_user"
+func (TeamUser) TableName() string {
+	return "team_user"
 }
 
 type UserSetting struct {
