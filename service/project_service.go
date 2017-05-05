@@ -22,6 +22,7 @@ type ProjectService interface{
 	GetProject(projectId *int64) (*model.Project, error)
 	GetProjectsPage(key string, start *int64, limit *int64) (*[]model.Project, error)
 	GetProjectByUser(userIds *[]int64) (*[]model.Project, error)
+	GetJoiningProjects(userId *int64) (*[]model.Project, error)
 }
 
 type ProjectServiceImpl struct{}
@@ -73,6 +74,11 @@ func (projectService *ProjectServiceImpl) GetProjectByUser(userIds *[]int64) (*[
 	return projects, err
 }
 
+func (projectService *ProjectServiceImpl) GetJoiningProjects(userId *int64) (*[]model.Project, error) {
+	projects := make([]model.Project, 0, 5)
+	err := DB().Select("project.id, project.name, project.introduction").Joins("inner join team_user on team_user.project_id = project.id").Where("team_user.user_id = ?", userId).Find(projects).Error
+	return projects, err
+}
 
 
 type ProjectActionService interface {

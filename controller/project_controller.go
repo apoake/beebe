@@ -5,6 +5,7 @@ import (
 	"github.com/eleme/taco/log"
 	"gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
+	"beebe/model"
 )
 
 
@@ -30,9 +31,10 @@ func (projectController *ProjectController) search(ctx *macaron.Context) {
 	}
 	result, err := service.GetProjectService().GetProjectsPage(search, &start, &limit)
 	if err != nil {
-		log.Logger().Error("ProjectController Search error")
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
 	}
-	ctx.Data[RESULT_KEY] = result
+	setSuccessResponse(ctx, result)
 }
 
 /**
@@ -43,9 +45,10 @@ func (projectController *ProjectController) myProjects(ctx *macaron.Context, ses
 	userIds := []int64{user.ID}
 	projects, err := service.GetProjectService().GetProjectByUser(userIds)
 	if err != nil {
-		log.Logger().Error("ProjectController myProject error")
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
 	}
-	ctx.Data[RESULT_KEY] = projects
+	setSuccessResponse(ctx, projects)
 }
 
 /**
@@ -53,7 +56,11 @@ func (projectController *ProjectController) myProjects(ctx *macaron.Context, ses
  */
 func (projectController *ProjectController) myJoiningProjects(ctx *macaron.Context, sess session.Store) {
 	user := getCurrentUser(sess)
-
+	projects, err := service.GetProjectService().GetJoiningProjects(&user.ID)
+	if err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+	}
+	setSuccessResponse(ctx, projects)
 }
 
 

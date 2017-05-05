@@ -40,8 +40,6 @@ func (userService *UserServiceImpl) RegisterUser(user *model.User) error {
 type TeamService interface {
 	Create(team *model.Team) error
 	AddTeamUser(teamUser *model.TeamUser) error
-	//MyTeam(userId *int64) (*[]model.Team, error)
-	//MyJoiningTeam(userId *int64) (*[]model.Team, error)
 }
 
 type TeamServiceImpl struct {}
@@ -54,9 +52,11 @@ func (teamService *TeamServiceImpl) Create(team *model.Team) error {
 }
 
 func (teamService *TeamServiceImpl) AddTeamUser(teamUser *model.TeamUser) error {
-	if teamUser == nil || teamUser.UserId == nil {
-
+	if teamUser == nil || teamUser.UserId == 0 || teamUser.ProjectId == 0 ||
+		teamUser.RoleId == 0 || teamUser.TeamId == 0 {
+		return errors.New("param is invalid")
 	}
+	return DB().Create(teamUser).Error
 }
 
 

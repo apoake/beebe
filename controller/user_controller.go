@@ -26,30 +26,27 @@ func (userController *UserController) login(userLogin UserLogin, ctx *macaron.Co
 	userName := userLogin.UserName
 	password := userLogin.Password
 	if userName == "" || password == "" {
-		ctx.Data[ERROR_CODE_KEY] = *model.PARAMETER_INVALID
+		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}
 	user, err := service.GetUserService().Login(&model.User{Name: userName, Password: password})
 	if err != nil || user == nil {
-		ctx.Data[ERROR_CODE_KEY] = *model.USERNAME_PASSWORD_ERROR
-		ctx.Data[ERROR_INFO_KEY] = err
+		setFailResponse(ctx, model.USERNAME_PASSWORD_ERROR, err)
 		return
 	}
 	if err := sess.Set(model.USER_SESSION_KEY, user); err != nil {
-		ctx.Data[ERROR_CODE_KEY] = *model.SYSTEM_ERROR
-		ctx.Data[ERROR_INFO_KEY] = err
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
-	ctx.Data[RESULT_KEY] = &model.User{Name:user.Name, ID:user.ID, Email:user.Email}
+	setSuccessResponse(ctx, &model.User{Name:user.Name, ID:user.ID, Email:user.Email})
 }
 
 func (userController *UserController) logout(ctx *macaron.Context, sess session.Store) {
 	if err := sess.Delete(model.USER_SESSION_KEY); err != nil {
-		ctx.Data[ERROR_CODE_KEY] = *model.SYSTEM_ERROR
-		ctx.Data[ERROR_INFO_KEY] = err
+		setResponse(ctx, nil, model.SYSTEM_ERROR, err)
 		return
 	}
-	ctx.Data[RESULT_KEY] = *model.SUCCESS
+	setErrorResponse(ctx, model.SUCCESS)
 }
 
 func getCurrentUser(sess session.Store) *model.User {

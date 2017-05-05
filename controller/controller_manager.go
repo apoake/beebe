@@ -4,7 +4,6 @@ import (
 	macaron "gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
 	"encoding/json"
-	"github.com/eleme/taco/log"
 	"beebe/model"
 )
 
@@ -56,27 +55,46 @@ func sessionConfig() {
 func jsonResponse(ctx *macaron.Context) string {
 	if errCode, ok := ctx.Data[ERROR_CODE_KEY]; ok {
 		if value, ok := errCode.(model.ErrorCode); ok {
-			resultError, err := json.Marshal(*model.ConvertRestResult(&value))
+			restResult := model.ConvertRestResult(&value)
+			if value.Code == model.SUCCESS.Code {
+				if result, ok := ctx.Data[RESULT_KEY]; ok && result != nil {
+					restResult.SetData(result)
+				}
+			}
+			if err, ok := ctx.Data[ERROR_INFO_KEY]; ok {
+				// TODO logger error
+				println(err)
+			}
+			resultError, err := json.Marshal(*restResult)
 			if err != nil {
 				return ""
 			}
-			// TODO logger error
 			return string(resultError)
 		}
-		return ""
 	}
-	result, ok := ctx.Data[RESULT_KEY]
-	if !ok {
-		resultError, err := json.Marshal(*model.ConvertRestResult(model.SYSTEM_ERROR))
-		if err != nil {
-			return ""
+	return ""
+}
+
+func setResponse(ctx *macaron.Context, result *interface{}, errCode *model.ErrorCode, err error) {
+	if errCode != nil {
+		ctx.Data[ERROR_CODE_KEY] = *errCode
+		if errCode == model.SUCCESS && result != nil {
+			ctx.Data[RESULT_KEY] = result
 		}
-		return string(resultError)
+		if err != nil {
+			ctx.Data[ERROR_INFO_KEY] = err
+		}
 	}
-	resultData, err := json.Marshal(*(model.ConvertRestResult(model.SUCCESS).SetData(result)))
-	if err != nil {
-		// TODO logger error
-		log.Logger().Error("jsonResponse error")
-	}
-	return string(resultData)
+}
+
+func setSuccessResponse(ctx *macaron.Context, result *interface{}) {
+	setResponse(ctx, result, model.SUCCESS, nil)
+}
+
+func setFailResponse(ctx *macaron.Context, errCode *model.ErrorCode, err error) {
+	setResponse(ctx, nil, errCode, err)
+}
+
+func setErrorResponse(ctx *macaron.Context, errCode *model.ErrorCode)  {
+	setResponse(ctx, nil, errCode, nil)
 }
