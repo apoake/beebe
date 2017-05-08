@@ -6,6 +6,7 @@ import (
 
 var projectActionService = new(ProjectActionServiceImpl)
 var projectService = new(ProjectServiceImpl)
+var workSpaceService = new(WorkSpaceServiceImpl)
 
 func GetProjectActionService() *ProjectActionServiceImpl {
 	return projectActionService
@@ -13,6 +14,10 @@ func GetProjectActionService() *ProjectActionServiceImpl {
 
 func GetProjectService() *ProjectServiceImpl {
 	return projectService
+}
+
+func GetWorkSpaceService() *WorkSpaceServiceImpl {
+	return workSpaceService
 }
 
 type ProjectService interface{
@@ -71,13 +76,13 @@ func (projectService *ProjectServiceImpl) GetProjectsPage(key string, start *int
 func (projectService *ProjectServiceImpl) GetProjectByUser(userIds *[]int64) (*[]model.Project, error) {
 	projects := make([]model.Project, 0, 5)
 	err := DB().Where("user_id in (?)", userIds).Find(projects).Error
-	return projects, err
+	return &projects, err
 }
 
 func (projectService *ProjectServiceImpl) GetJoiningProjects(userId *int64) (*[]model.Project, error) {
 	projects := make([]model.Project, 0, 5)
 	err := DB().Select("project.id, project.name, project.introduction").Joins("inner join team_user on team_user.project_id = project.id").Where("team_user.user_id = ?", userId).Find(projects).Error
-	return projects, err
+	return &projects, err
 }
 
 
@@ -138,4 +143,17 @@ func (projectActionService *ProjectActionServiceImpl) Delete(actionId *int64) (e
 		return err
 	}
 	return nil
+}
+
+
+type WorkSpaceService interface {
+	GetProject(userId *int64) (*[]model.Project, error)
+}
+
+type WorkSpaceServiceImpl struct {}
+
+func (workspaceService * WorkSpaceServiceImpl) GetProject(userId *int64) (*[]model.Project, error) {
+	projects := make([]model.Project, 0, 5)
+	err := DB().Select("project.id, project.name, project.introduction").Joins("inner join workspace on workspace.project_id = project.id").Where("workspace.user_id = ?", userId).Find(projects).Error
+	return &projects, err
 }

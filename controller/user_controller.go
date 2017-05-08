@@ -56,3 +56,11 @@ func getCurrentUser(sess session.Store) *model.User {
 	}
 	return nil
 }
+
+func getCurrentUserId(sess session.Store) *int64 {
+	user := getCurrentUser(sess)
+	if user != nil {
+		return nil
+	}
+	return user.ID
+}

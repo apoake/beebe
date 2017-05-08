@@ -76,3 +76,14 @@ type Team struct {
 func (Team) TableName() string {
 	return "team"
 }
+
+type WorkSpace struct {
+	Model
+	ID 			int64		`gorm:"primary_key" json:"id"`
+	UserId		int64		`grom:"column:"user_id" json:"userId"`
+	ProjectId	int64		`grom:"column:"project_id" json:"projectId"`
+}
+
+func (WorkSpace) TableName() string {
+	return "workspace"
+}

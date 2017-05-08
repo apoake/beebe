@@ -2,7 +2,6 @@ package controller
 
 import (
 	"beebe/service"
-	"github.com/eleme/taco/log"
 	"gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
 	"beebe/model"
@@ -14,6 +13,11 @@ type ProjectController struct {}
 func init() {
 	projectController := new(ProjectController)
 	Macaron().Get("/search", projectController.search, jsonResponse)
+	Macaron().Group("/project", func() {
+		Macaron().Post("/mine", projectController.myProjects, jsonResponse)
+		Macaron().Post("/join", projectController.myJoiningProjects, jsonResponse)
+		Macaron().Post("/space", projectController.myWorkspace, jsonResponse)
+	})
 }
 
 /**
@@ -63,4 +67,20 @@ func (projectController *ProjectController) myJoiningProjects(ctx *macaron.Conte
 	setSuccessResponse(ctx, projects)
 }
 
+/**
+	myWorkspace
+ */
+func (projectController *ProjectController) myWorkspace(ctx *macaron.Context, sess session.Store) {
+	userId := getCurrentUserId(sess)
+	if userId == nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, nil)
+		return
+	}
+	projects, err := service.GetWorkSpaceService().GetProject(userId)
+	if err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
+	}
+	setSuccessResponse(ctx, projects)
+}
 
