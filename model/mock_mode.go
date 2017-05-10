@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 	"math/rand"
-	"fmt"
 )
 
 const (
@@ -48,13 +47,13 @@ const (
 	DEFAULT_DATE_FORMAT = "2006-01-02 15:04:05"
 )
 
-var StrMockFeatures map[string]string
+var StrMockFeatures map[string]int
 var MOCK_MAP map[string]MockType
 var REGEXP *regexp.Regexp = regexp.MustCompile(`^@(.+)\((.+),(.+),(.+)\)$`)
-var mockManager MockManager = MockManager{}
+var mockManager *MockManager = &MockManager{}
 
 func init() {
-	StrMockFeatures = make(map[string]string)
+	StrMockFeatures = make(map[string]int)
 	StrMockFeatures[STR_FEATURE_LOWER] = 1
 	StrMockFeatures[STR_FEATURE_UPPER] = 2
 	StrMockFeatures[STR_FEATURE_NUMBER] = 0
@@ -82,13 +81,15 @@ func init() {
 	//MOCK_MAP[MOCK_ZIP] = MOCK_ZIP
 	//MOCK_MAP[MOCK_PCIK] = MOCK_PCIK
 	//MOCK_MAP[MOCK_ARRAY] = MOCK_ARRAY
-
-
 }
 
 type MockManager struct{}
 
-func (mockManager *MockManager) Mock(str *string) (*string, error) {
+func GetMockManager() *MockManager {
+	return mockManager
+}
+
+func (mockManager *MockManager) Mock(str *string) (interface{}, error) {
 	if *str == "" {
 		return nil, errors.New("mock str is empty")
 	}
@@ -100,7 +101,8 @@ func (mockManager *MockManager) Mock(str *string) (*string, error) {
 	mockType := arr[1]
 	if val, ok := MOCK_MAP[mockType]; ok {
 		if length > 2 {
-			val.MockVal(arr[2:])
+			arrtt := arr[2:]
+			return val.MockVal(&arrtt)
 		}
 		return val.MockVal(nil)
 	}
@@ -108,7 +110,7 @@ func (mockManager *MockManager) Mock(str *string) (*string, error) {
 }
 
 type MockType interface {
-	MockVal(params *[]string) (*interface{}, error)
+	MockVal(params *[]string) (interface{}, error)
 	//CheckRule(str *string) error
 }
 
@@ -116,51 +118,52 @@ type BaseMock struct {
 	MockReg *regexp.Regexp
 }
 
-func (baseMock *BaseMock) Mock(str *string) (*interface{}, error) {
-	if *str == "" {
-		return nil, errors.New("mock str is empty")
-	}
-	index := strings.Index(*str, MOCK_BRACKET_LEFT)
-	rs := []rune(*str)
-	prefix := string(rs[:index])
-	if val, ok := MOCK_MAP[prefix]; ok {
-		// mock
-		return val.MockVal(str)
-	}
-	return nil, errors.New("not support " + prefix)
-}
+//func (baseMock *BaseMock) Mock(str *string) (interface{}, error) {
+//	if *str == "" {
+//		return nil, errors.New("mock str is empty")
+//	}
+//	index := strings.Index(*str, MOCK_BRACKET_LEFT)
+//	rs := []rune(*str)
+//	prefix := string(rs[:index])
+//	if val, ok := MOCK_MAP[prefix]; ok {
+//		// mock
+//		return val.MockVal(str)
+//	}
+//	return nil, errors.New("not support " + prefix)
+//}
 
 type StrMock struct {
 	Arr 	 	*[][]int
 	BaseMock
 }
 
-func (strMock StrMock) MockVal(params *[]string) (*interface{}, error) {
+func (strMock StrMock) MockVal(params *[]string) (interface{}, error) {
 	var err error
 	var min, max int
-	var features int
-	if min, err = getInt(&params[0]); err != nil {
-		return &params[0], err
+	var feature int
+	pa := *params
+	if min, err = getInt(pa[0]); err != nil {
+		return pa, err
 	}
-	if max, err = getInt(&params[1]); err != nil {
-		return &params[1], err
+	if max, err = getInt(pa[1]); err != nil {
+		return pa, err
 	}
 	if max < min {
 		return nil, errors.New("max must gt min")
 	}
-	if length := len(params); length == 3 {
+	if length := len(pa); length == 3 {
 		var features string
-		if features, err = getValue(&params[2]); err != nil {
-			return &params[2], err
+		if features, err = getValue(pa[2]); err != nil {
+			return pa[2], err
 		} else if val, ok := StrMockFeatures[features]; ok {
-			features = val
+			feature = val
 		} else {
-			features = 3
+			feature = 3
 		}
 	}
 	rand.Seed(time.Now().UnixNano())
 	size := rand.Intn(max - min + 1) + min
-	return string(strRand(size, strMock.Arr, features))
+	return string(strRand(size, feature, strMock.Arr)), nil
 }
 
 // 随机字符串
@@ -182,32 +185,33 @@ type StrRepeat struct {
 	BaseMock
 }
 
-func (strRepeat *StrRepeat) MockVal(params *[]string) (*interface{}, error) {
+func (strRepeat *StrRepeat) MockVal(params *[]string) (interface{}, error) {
 	var err error
 	var min, max int
 	var val string
-	if min, err = getInt(&params[0]); err != nil {
-		return &params[0], err
+	pa := *params
+	if min, err = getInt(pa[0]); err != nil {
+		return pa[0], err
 	}
-	if max, err = getInt(&params[1]); err != nil {
-		return &params[1], err
+	if max, err = getInt(pa[1]); err != nil {
+		return pa[1], err
 	}
 	if max < min {
 		return nil, errors.New("max must gt min")
 	}
-	if val, err = getValue(&params[2]); err != nil {
+	if val, err = getValue(pa[2]); err != nil {
 		return nil, err
 	}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	ts := random.Intn(max - min + 1) + min
-	return strings.Repeat(val, ts)
+	return strings.Repeat(val, ts), nil
 }
-
+/*
 type NumMock struct {
 	BaseMock
 }
 
-func (numMock *NumMock) MockVal(params *[]string) (*interface{}, error) {
+func (numMock *NumMock) MockVal(params *[]string) (interface{}, error) {
 	var err error
 	var min, max, dmin, dmax int = -1, -1, -1, -1
 	var intpart int = 0
@@ -260,7 +264,7 @@ type DateMock struct {
 	BaseMock
 }
 
-func (dateMock *DateMock) MockVal(params *[]string) (*interface{}, error) {
+func (dateMock *DateMock) MockVal(params *[]string) (interface{}, error) {
 	var dataForm string
 	if length := len(*params); length > 0 {
 		dataForm = strings.TrimSpace(*params[0])
@@ -268,7 +272,7 @@ func (dateMock *DateMock) MockVal(params *[]string) (*interface{}, error) {
 	return mockTime(dataForm, false)
 }
 
-func mockTime(dataFormat string, isMockNow bool) (*interface{}, error) {
+func mockTime(dataFormat string, isMockNow bool) (interface{}, error) {
 	var err error
 	dataForm := DEFAULT_DATE_FORMAT
 	// 日期类型转义
@@ -290,7 +294,7 @@ type NowMock struct {
 	BaseMock
 }
 
-func (nowMock *NowMock) MockVal(params *[]string) (*interface{}, error) {
+func (nowMock *NowMock) MockVal(params *[]string) (interface{}, error) {
 	var dataForm string
 	if length := len(*params); length > 0 {
 		dataForm = strings.TrimSpace(*params[0])
@@ -302,7 +306,7 @@ type ImageMock struct {
 	BaseMock
 }
 
-func (imageMock *ImageMock) MockVal(params *[]string) (*interface{}, error) {
+func (imageMock *ImageMock) MockVal(params *[]string) (interface{}, error) {
 	size := "600x400"
 	bcolor := "000"
 	fcolor := "fff"
@@ -338,7 +342,7 @@ type BoolMock struct {
 	BaseMock
 }
 
-func (boolMock *BoolMock) MockVal(params *[]string) (*interface{}, error) {
+func (boolMock *BoolMock) MockVal(params *[]string) (interface{}, error) {
 	var truet int = 5
 	if params == nil && len(params) > 0 {
 		if num, err := getInt(&params[0]); err != nil {
@@ -358,7 +362,7 @@ type ColorMock struct {
 	BaseMock
 }
 
-func (colorMock *ColorMock) MockVal(params *[]string) (*interface{}, error) {
+func (colorMock *ColorMock) MockVal(params *[]string) (interface{}, error) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	result := "#" + fmt.Sprintf("%x", random.Intn(16777216))
 	return &result, nil
@@ -368,7 +372,7 @@ type RgbMock struct {
 	BaseMock
 }
 
-func (rgbMock *RgbMock) MockVal(params *[]string) (*interface{}, error) {
+func (rgbMock *RgbMock) MockVal(params *[]string) (interface{}, error) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	result := fmt.Sprintf("rgb(%d, %d, %d)", random.Intn(256), random.Intn(256), random.Intn(256))
 	return &result, nil
@@ -378,7 +382,7 @@ type RgbaMock struct {
 	BaseMock
 }
 
-func (rgbaMock *RgbaMock) MockVal(params *[]string) (*interface{}, error) {
+func (rgbaMock *RgbaMock) MockVal(params *[]string) (interface{}, error) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	result := fmt.Sprintf("rgba(%d, %d, %d, %0.2f)", random.Intn(256), random.Intn(256), random.Intn(256), float64(random.Intn(100)))
 	return &result, nil
@@ -427,19 +431,27 @@ type PickMock struct {
 type IncrMock struct {
 	BaseMock
 }
+*/
 
-func getValue(str *string) (string, error) {
-	tmpStr := strings.TrimSpace(*str)
+func getValue(str string) (string, error) {
+	tmpStr := strings.TrimSpace(str)
 	if strings.Contains(tmpStr, MOCK_PREFIX) {
-		return mockManager.Mock(&tmpStr)
+		intr, err := mockManager.Mock(&tmpStr)
+		if err != nil {
+			return "", err
+		}
+		if val, ok := intr.(string); ok {
+			return val, nil
+		}
+		return "", errors.New("not string type")
 	}
 	return tmpStr, nil
 }
 
-func getInt(str *string) (int, error) {
+func getInt(str string) (int, error) {
 	result, err := getValue(str)
 	if err != nil {
-		return nil, err
+		return -1, err
 	}
-	return strconv.Atoi(result), nil
+	return strconv.Atoi(result)
 }
