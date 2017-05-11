@@ -17,6 +17,7 @@ var m *macaron.Macaron
 
 func init() {
 	m = macaron.Classic()
+	m.Handlers(jsonResponse)
 	m.Use(macaron.Recovery())
 	sessionConfig()
 }
@@ -53,6 +54,7 @@ func sessionConfig() {
 }
 
 func jsonResponse(ctx *macaron.Context) string {
+	ctx.Next()
 	if errCode, ok := ctx.Data[ERROR_CODE_KEY]; ok {
 		if value, ok := errCode.(model.ErrorCode); ok {
 			restResult := model.ConvertRestResult(&value)

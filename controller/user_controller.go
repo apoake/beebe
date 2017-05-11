@@ -25,9 +25,9 @@ func init() {
 	AlreadyLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_ALREADY_LOGIN))
 	userController := new(UserController)
 	Macaron().Group("/user", func() {
-		Macaron().Post("/register", noNeedLogin, binding.Bind(UserDto{}), userController.register, jsonResponse)
-		Macaron().Post("/login", noNeedLogin, binding.Bind(UserDto{}), userController.login, jsonResponse)
-		Macaron().Post("/logout", needLogin, userController.logout, jsonResponse)
+		Macaron().Post("/register", noNeedLogin, binding.Bind(UserDto{}), userController.register)
+		Macaron().Post("/login", noNeedLogin, binding.Bind(UserDto{}), userController.login)
+		Macaron().Post("/logout", needLogin, userController.logout)
 	})
 }
 

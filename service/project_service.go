@@ -38,7 +38,6 @@ func (projectService *ProjectServiceImpl) AddProject(project *model.Project) err
 		tx.Rollback()
 		return err
 	}
-	// TODO 处理初始化项目与用户的对应关系
 	return tx.Commit().Error
 }
 

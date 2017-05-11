@@ -5,6 +5,7 @@ import (
 	"gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
 	"beebe/model"
+	"github.com/go-macaron/binding"
 )
 
 
@@ -12,11 +13,12 @@ type ProjectController struct {}
 
 func init() {
 	projectController := new(ProjectController)
-	Macaron().Get("/search", projectController.search, jsonResponse)
+	Macaron().Get("/search", projectController.search)
 	Macaron().Group("/project", func() {
-		Macaron().Post("/mine", projectController.myProjects, jsonResponse)
-		Macaron().Post("/join", projectController.myJoiningProjects, jsonResponse)
-		Macaron().Post("/space", projectController.myWorkspace, jsonResponse)
+		Macaron().Post("/create", binding.Bind(model.Project{}), projectController.create)
+		Macaron().Post("/mine", projectController.myProjects)
+		Macaron().Post("/join", projectController.myJoiningProjects)
+		Macaron().Post("/space", projectController.myWorkspace)
 	}, needLogin)
 }
 
@@ -39,6 +41,20 @@ func (projectController *ProjectController) search(ctx *macaron.Context) {
 		return
 	}
 	setSuccessResponse(ctx, result)
+}
+
+func (projectController *ProjectController) create(project model.Project, ctx *macaron.Context, sess session.Store) {
+	if project.Name == "" || project.IsPublic == 0 {
+		setErrorResponse(ctx, model.PARAMETER_INVALID)
+		return
+	}
+	projectdb := &model.Project{IsPublic: project.IsPublic, Introduction:project.Introduction, Name: project.Name, UserId: *getCurrentUserId(sess)}
+	err := service.GetProjectService().AddProject(projectdb)
+	if err != nil {
+		setFailResponse(ctx, model.PROJECT_CREATE_ERROR, err)
+		return
+	}
+	setSuccessResponse(ctx, *projectdb)
 }
 
 /**
