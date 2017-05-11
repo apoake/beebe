@@ -6,8 +6,11 @@ import (
 	"beebe/service"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/binding"
+	"encoding/json"
 )
 
+var NoLoginResult []byte
+var alreadyLoginResult []byte
 type UserController struct {}
 type UserLogin struct {
 	UserName		string 			`json:"userName"`
@@ -15,10 +18,12 @@ type UserLogin struct {
 }
 
 func init() {
+	noLoginResult := model.ConvertRestResult(model.USER_NO_LOGIN)
+	NoLoginResult, _ = json.Marshal(noLoginResult)
 	userController := new(UserController)
 	Macaron().Group("/user", func() {
-		Macaron().Post("/login", binding.Bind(UserLogin{}), userController.login, jsonResponse)
-		Macaron().Post("/logout", userController.logout, jsonResponse)
+		Macaron().Post("/login", noNeedLogin, binding.Bind(UserLogin{}), userController.login, jsonResponse)
+		Macaron().Post("/logout", needLogin, userController.logout, jsonResponse)
 	})
 }
 
@@ -49,6 +54,17 @@ func (userController *UserController) logout(ctx *macaron.Context, sess session.
 	setErrorResponse(ctx, model.SUCCESS)
 }
 
+func needLogin(ctx *macaron.Context, sess *session.Store) {
+	if user := getCurrentUser(sess); user == nil {
+		ctx.Resp.Write(NoLoginResult)
+	}
+}
+
+func noNeedLogin(ctx *macaron.Context, sess, store *session.Store) {
+	if user := getCurrentUser(sess); user != nil {
+		ctx.Resp.Write(NoLoginResult)
+	}
+}
 
 func getCurrentUser(sess session.Store) *model.User {
 	usertmp := sess.Get(model.USER_SESSION_KEY)

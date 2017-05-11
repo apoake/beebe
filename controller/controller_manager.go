@@ -52,10 +52,6 @@ func sessionConfig() {
 	}))
 }
 
-func loginHandler(ctx *macaron.Context) {
-
-}
-
 func jsonResponse(ctx *macaron.Context) string {
 	if errCode, ok := ctx.Data[ERROR_CODE_KEY]; ok {
 		if value, ok := errCode.(model.ErrorCode); ok {
