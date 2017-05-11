@@ -17,7 +17,7 @@ func init() {
 		Macaron().Post("/mine", projectController.myProjects, jsonResponse)
 		Macaron().Post("/join", projectController.myJoiningProjects, jsonResponse)
 		Macaron().Post("/space", projectController.myWorkspace, jsonResponse)
-	})
+	}, needLogin)
 }
 
 /**

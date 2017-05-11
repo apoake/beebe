@@ -13,6 +13,7 @@ func GetUserService() *UserServiceImpl {
 
 type UserService interface {
 	FindUserByUserId(userId *int64) *model.User;
+	CheckUserByAccount(account *string) bool;
 	Login(loginUser *model.User) (*model.User, error);
 	RegisterUser(registerUser *model.User) error
 }
@@ -26,9 +27,15 @@ func (userService *UserServiceImpl) FindUserByUserId(userId *int64) *model.User{
 	return user
 }
 
+func (userService *UserServiceImpl) CheckUserByAccount(account *string) bool {
+	user := new(model.User)
+	DB().Where("account = ?", account).First(user)
+	return user.ID > 0
+}
+
 func (userService *UserServiceImpl) Login(loginUser *model.User) (*model.User, error) {
 	user := new(model.User)
-	err := DB().Where("name = ? and password = ?", loginUser.Name, loginUser.Password).Find(user).Error
+	err := DB().Where("account = ? and password = ?", loginUser.Account, loginUser.Password).Find(user).Error
 	return user, err
 }
 

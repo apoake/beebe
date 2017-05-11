@@ -11,17 +11,18 @@ const (
 type User struct {
 	Model
 	ID				int64		`gorm:"primary_key" json:"id"`
-	Account			string		`json:"account"`
-	Password		string		`json:"password" form:"password"`
-	Name 			string		`json:"name" form:"name"`
-	Email 			string		`json:"email"`
-	IsLockOut		uint		`gorm:"column:is_locked_out" json:"isLockOut" gorm:"default:0"`
-	LastLoginDate	time.Time	`gorm:"column:last_login_date"`
+	Account			string		`gorm:"column:account" json:"account"`
+	Password		string		`gorm:"column:password" json:"password"`
+	Name 			string		`gorm:"column:name" json:"name"`
+	Email 			string		`gorm:"column:name" json:"name"`
+	IsLockOut		uint		`gorm:"column:isLockOut" json:"isLockOut" gorm:"default:0"`
+	LastLoginDate	*time.Time	`gorm:"column:last_login_date"`
 }
 
 type UserVo struct {
 	Vo
 	ID				int64		`json:"id"`
+	Account			string		`json:"account"`
 	Name 			string		`json:"name"`
 	Email 			string		`json:"email"`
 }
@@ -35,7 +36,7 @@ type UserSettings struct {
 	ID 				int64		`gorm:"primary_key"`
 	UserId 			int64		`gorm:"column:user_id" json:"userId"`
 	Key 			string		`gorm:"column:key" json:"key"`
-	Val 			string		`json:"val"`
+	Val 			string		`gorm:"column:val" json:"val"`
 }
 
 func (UserSettings) TableName() string {
