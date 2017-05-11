@@ -49,7 +49,7 @@ const (
 
 var StrMockFeatures map[string]int
 var MOCK_MAP map[string]MockType
-var REGEXP *regexp.Regexp = regexp.MustCompile(`^@(.+)\((.+),(.+),(.+)\)$`)
+var REGEXP *regexp.Regexp = regexp.MustCompile(`^(@.+)\((.+),(.+),(.+)\)$`)
 var mockManager *MockManager = &MockManager{}
 
 func init() {
