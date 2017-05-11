@@ -1,6 +1,5 @@
 package model
 
-
 type Project struct {
 	Model
 	ID           int64			`gorm:"primary_key" json:"id"`
@@ -19,6 +18,7 @@ func (Project) TableName() string {
 
 type ProjectUserMapping struct {
 	Model
+	ID 			int64		 `gorm:"primary_key" json:"id"`
 	ProjectId   int64        `grom:"column:"project_id" json:"projectId"`
 	TeamId		int16		 `grom:"column:"team_id" json:"teamId"`
 	UserId      int64        `grom:"column:"user_id" json:"userId"`

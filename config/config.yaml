@@ -1,7 +1,7 @@
 dbconfig:
   db_dialect: mysql
   db_host: tcp(127.0.0.1:3306)
-  db_name: beebe
+  db_name: bee
   db_user: root
   db_password: root
   db_pool_num: 100
