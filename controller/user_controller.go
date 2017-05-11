@@ -49,10 +49,11 @@ func (userController *UserController) logout(ctx *macaron.Context, sess session.
 	setErrorResponse(ctx, model.SUCCESS)
 }
 
+
 func getCurrentUser(sess session.Store) *model.User {
 	usertmp := sess.Get(model.USER_SESSION_KEY)
 	if user, ok := usertmp.(model.User); ok {
-		return *user
+		return &user
 	}
 	return nil
 }
@@ -62,5 +63,5 @@ func getCurrentUserId(sess session.Store) *int64 {
 	if user != nil {
 		return nil
 	}
-	return user.ID
+	return &user.ID
 }

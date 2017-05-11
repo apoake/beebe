@@ -79,7 +79,7 @@ func jsonResponse(ctx *macaron.Context) string {
 	return ""
 }
 
-func setResponse(ctx *macaron.Context, result *interface{}, errCode *model.ErrorCode, err error) {
+func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorCode, err error) {
 	if errCode != nil {
 		ctx.Data[ERROR_CODE_KEY] = *errCode
 		if errCode == model.SUCCESS && result != nil {
@@ -91,7 +91,7 @@ func setResponse(ctx *macaron.Context, result *interface{}, errCode *model.Error
 	}
 }
 
-func setSuccessResponse(ctx *macaron.Context, result *interface{}) {
+func setSuccessResponse(ctx *macaron.Context, result interface{}) {
 	setResponse(ctx, result, model.SUCCESS, nil)
 }
 

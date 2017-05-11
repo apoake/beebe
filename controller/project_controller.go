@@ -47,7 +47,7 @@ func (projectController *ProjectController) search(ctx *macaron.Context) {
 func (projectController *ProjectController) myProjects(ctx *macaron.Context, sess session.Store) {
 	user := getCurrentUser(sess)
 	userIds := []int64{user.ID}
-	projects, err := service.GetProjectService().GetProjectByUser(userIds)
+	projects, err := service.GetProjectService().GetProjectByUser(&userIds)
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
