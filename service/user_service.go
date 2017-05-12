@@ -57,7 +57,9 @@ func (userService *UserServiceImpl) SearchUserByAccount(account *string) (*model
 
 
 type TeamService interface {
+	Get(teamId *int64) *model.Team
 	Create(team *model.Team) error
+	Update(team *model.Team) error
 	QuitTeam(team *model.Team) error
 	Transform(team *model.Team, userId *int64) error
 	ChangeRole(teamUser *model.TeamUser) error
@@ -68,6 +70,12 @@ type TeamService interface {
 }
 
 type TeamServiceImpl struct {}
+
+func (teamService *TeamServiceImpl) Get(teamId *int64) *model.Team {
+	team := &model.Team{ID: *teamId}
+	DB().First(team)
+	return team
+}
 
 func (teamService *TeamServiceImpl) Create(team *model.Team) (err error) {
 	if team.UserId == 0 {
@@ -87,6 +95,13 @@ func (teamService *TeamServiceImpl) Create(team *model.Team) (err error) {
 	}
 	tx.Commit()
 	return nil
+}
+
+func (teamService *TeamServiceImpl) Update(team *model.Team) error {
+	if team.ID == 0 {
+		return errors.New("param[team.ID] is empty")
+	}
+	return DB().Model(&model.Team{ID: team.ID}).Updates(map[string]interface{}{"name": team.Name, "remark": team.Remark}).Error
 }
 
 func (teamService *TeamServiceImpl) QuitTeam(team *model.Team) (err error) {
@@ -205,8 +220,27 @@ func (teamService *TeamServiceImpl) AddTeamUser(teamUser *model.TeamUser) (err e
 	return nil
 }
 
-func (teamService *TeamServiceImpl) RemoveTeamUser(teamUser *model.TeamUser) error {
-
+func (teamService *TeamServiceImpl) RemoveTeamUser(teamUser *model.TeamUser) (err error) {
+	dbTeam := &model.Team{ID: teamUser.TeamId}
+	if err = DB().First(dbTeam).Error; err != nil {
+		return
+	}
+	if dbTeam.UserId == teamUser.UserId {
+		return errors.New("Team own can not remove self")
+	}
+	tx := DB().Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	if err = tx.Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).Delete(&model.TeamUser{}).Error; err != nil {
+		return 
+	}
+	if err = tx.Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).Delete(&model.ProjectUserMapping{}).Error; err != nil {
+		return
+	}
+	return nil
 }
 
 

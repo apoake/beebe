@@ -19,6 +19,11 @@ var USER_ACCOUNT_EXIST *ErrorCode = &ErrorCode{Code: 604, Msg: "USER_ACCOUNT_EXI
  */
 var PROJECT_CREATE_ERROR *ErrorCode = &ErrorCode{Code: 701, Msg: "PROJECT_CREATE_ERROR"}
 
+/**
+	team error
+ */
+var TEAM_NOT_SELF *ErrorCode = &ErrorCode{Code: 801, Msg: "TEAM_NOT_SELF"}
+
 
 type ErrorCode struct {
 	Code int
