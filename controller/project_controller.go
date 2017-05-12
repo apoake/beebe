@@ -8,8 +8,7 @@ import (
 	"github.com/go-macaron/binding"
 )
 
-
-type ProjectController struct {}
+type ProjectController struct{}
 
 func init() {
 	projectController := new(ProjectController)
@@ -18,7 +17,11 @@ func init() {
 		Macaron().Post("/create", binding.Bind(model.Project{}), projectController.create)
 		Macaron().Post("/mine", projectController.myProjects)
 		Macaron().Post("/join", projectController.myJoiningProjects)
-		Macaron().Post("/space", projectController.myWorkspace)
+	}, needLogin)
+	Macaron().Group("/space", func() {
+		Macaron().Post("/", projectController.myWorkspace)
+		Macaron().Post("/addproject", binding.Bind(model.WorkSpace{}), projectController.addProject)
+		Macaron().Post("/deleteproject", binding.Bind(model.WorkSpace{}), projectController.deleteProject)
 	}, needLogin)
 }
 
@@ -33,7 +36,7 @@ func (projectController *ProjectController) search(ctx *macaron.Context) {
 	if pageNo < 1 {
 		start = 0
 	} else {
-		start = (pageNo-1) * limit
+		start = (pageNo - 1) * limit
 	}
 	result, err := service.GetProjectService().GetProjectsPage(search, &start, &limit)
 	if err != nil {
@@ -48,7 +51,7 @@ func (projectController *ProjectController) create(project model.Project, ctx *m
 		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}
-	projectdb := &model.Project{IsPublic: project.IsPublic, Introduction:project.Introduction, Name: project.Name, UserId: *getCurrentUserId(sess)}
+	projectdb := &model.Project{IsPublic: project.IsPublic, Introduction: project.Introduction, Name: project.Name, UserId: getCurrentUserId(sess)}
 	err := service.GetProjectService().AddProject(projectdb)
 	if err != nil {
 		setFailResponse(ctx, model.PROJECT_CREATE_ERROR, err)
@@ -75,28 +78,55 @@ func (projectController *ProjectController) myProjects(ctx *macaron.Context, ses
 	myJoiningProjects
  */
 func (projectController *ProjectController) myJoiningProjects(ctx *macaron.Context, sess session.Store) {
-	user := getCurrentUser(sess)
-	projects, err := service.GetProjectService().GetJoiningProjects(&user.ID)
-	if err != nil {
-		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+	if userId, ok := getUserId(ctx, sess); ok {
+		projects, err := service.GetProjectService().GetJoiningProjects(&userId)
+		if err != nil {
+			setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		}
+		setSuccessResponse(ctx, projects)
 	}
-	setSuccessResponse(ctx, projects)
 }
 
 /**
 	myWorkspace
  */
 func (projectController *ProjectController) myWorkspace(ctx *macaron.Context, sess session.Store) {
-	userId := getCurrentUserId(sess)
-	if userId == nil {
-		setFailResponse(ctx, model.SYSTEM_ERROR, nil)
-		return
+	if userId, ok := getUserId(ctx, sess); ok {
+		projects, err := service.GetWorkSpaceService().GetProject(&userId)
+		if err != nil {
+			setFailResponse(ctx, model.SYSTEM_ERROR, err)
+			return
+		}
+		setSuccessResponse(ctx, projects)
 	}
-	projects, err := service.GetWorkSpaceService().GetProject(userId)
-	if err != nil {
-		setFailResponse(ctx, model.SYSTEM_ERROR, err)
-		return
-	}
-	setSuccessResponse(ctx, projects)
 }
 
+func (projectController *ProjectController) addProject(workspace model.WorkSpace, ctx *macaron.Context, sess session.Store) {
+	if userId, ok := getUserId(ctx, sess); ok {
+		if workspace.ProjectId == 0 {
+			setErrorResponse(ctx, model.PARAMETER_INVALID)
+			return
+		}
+		err := service.GetWorkSpaceService().AddProject(&model.WorkSpace{UserId: userId, ProjectId: workspace.ProjectId})
+		if err != nil {
+			setFailResponse(ctx, model.SYSTEM_ERROR, err)
+			return
+		}
+		setSuccessResponse(ctx, nil)
+	}
+}
+
+func (projectController *ProjectController) deleteProject(workspace model.WorkSpace, ctx *macaron.Context, sess session.Store) {
+	if userId, ok := getUserId(ctx, sess); ok {
+		if workspace.ProjectId == 0 {
+			setErrorResponse(ctx, model.PARAMETER_INVALID)
+			return
+		}
+		err := service.GetWorkSpaceService().DeleteProject(&model.WorkSpace{UserId: userId, ProjectId: workspace.ProjectId})
+		if err != nil {
+			setFailResponse(ctx, model.SYSTEM_ERROR, err)
+			return
+		}
+		setSuccessResponse(ctx, nil)
+	}
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/go-macaron/binding"
 	"encoding/json"
 	"beebe/utils"
+	"errors"
 )
 
 var NoLoginResult []byte
@@ -60,11 +61,11 @@ func (userController *UserController) login(userLogin UserDto, ctx *macaron.Cont
 		setFailResponse(ctx, model.USERNAME_PASSWORD_ERROR, err)
 		return
 	}
-	if err := sess.Set(model.USER_SESSION_KEY, user); err != nil {
+	if err := sess.Set(model.USER_SESSION_KEY, *user); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
-	setSuccessResponse(ctx, &model.User{Name:user.Name, ID:user.ID, Email:user.Email, Account:user.Account})
+	setSuccessResponse(ctx, model.User{Name:user.Name, ID:user.ID, Email:user.Email, Account:user.Account})
 }
 
 func (userController *UserController) logout(ctx *macaron.Context, sess session.Store) {
@@ -89,16 +90,25 @@ func noNeedLogin(ctx *macaron.Context, sess session.Store) {
 
 func getCurrentUser(sess session.Store) *model.User {
 	usertmp := sess.Get(model.USER_SESSION_KEY)
-	if user, ok := usertmp.(*model.User); ok {
-		return user
+	if user, ok := usertmp.(model.User); ok {
+		return &user
 	}
 	return nil
 }
 
-func getCurrentUserId(sess session.Store) *int64 {
+func getCurrentUserId(sess session.Store) int64 {
 	user := getCurrentUser(sess)
-	if user != nil {
-		return nil
+	if user == nil {
+		return 0
 	}
-	return &(user.ID)
+	return user.ID
+}
+
+func getUserId(ctx *macaron.Context, sess session.Store) (int64, bool) {
+	user := getCurrentUser(sess)
+	if user == nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, errors.New("not find user in session"))
+		return 0, false
+	}
+	return user.ID, true
 }
