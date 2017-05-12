@@ -2,6 +2,7 @@ package service
 
 import (
 	"beebe/model"
+	"github.com/pkg/errors"
 )
 
 var projectActionService = new(ProjectActionServiceImpl)
@@ -23,7 +24,7 @@ func GetWorkSpaceService() *WorkSpaceServiceImpl {
 type ProjectService interface{
 	AddProject(project *model.Project) error
 	UpdateProject(project *model.Project) error
-	DeleteProject(projectId *int64) error
+	DeleteProject(project *model.Project) error
 	GetProject(projectId *int64) (*model.Project, error)
 	GetProjectsPage(key string, start *int64, limit *int64) (*[]model.Project, error)
 	GetProjectByUser(userIds *[]int64) (*[]model.Project, error)
@@ -42,7 +43,7 @@ func (projectService *ProjectServiceImpl) AddProject(project *model.Project) err
 }
 
 func (projectService *ProjectServiceImpl) UpdateProject(project *model.Project) error {
-	dbProject := new(model.Project)
+	dbProject := &model.Project{ID: project.ID}
 	DB().First(dbProject)
 	dbProject.Name = project.Name
 	dbProject.Introduction = project.Introduction
@@ -50,10 +51,13 @@ func (projectService *ProjectServiceImpl) UpdateProject(project *model.Project) 
 	return DB().Save(dbProject).Error
 }
 
-func (projectService *ProjectServiceImpl) DeleteProject(projectId *int64) error {
-	project := new(model.Project)
-	project.ID = *projectId
-	return DB().Delete(project).Error
+func (projectService *ProjectServiceImpl) DeleteProject(project *model.Project) error {
+	dbProject := &model.Project{ID: project.ID}
+	DB().First(dbProject)
+	if dbProject.UserId != project.UserId {
+		return errors.New("only project ownner can delete the project")
+	}
+	return DB().Delete(dbProject).Error
 }
 
 func (projectService *ProjectServiceImpl) GetProject(projectId int64) (*model.Project, error) {
@@ -143,7 +147,6 @@ func (projectActionService *ProjectActionServiceImpl) Delete(actionId *int64) (e
 	}
 	return nil
 }
-
 
 type WorkSpaceService interface {
 	GetProject(userId *int64) (*[]model.Project, error)

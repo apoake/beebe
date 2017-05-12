@@ -131,7 +131,8 @@ func (userController *UserController) updateTeam(team model.Team, ctx *macaron.C
 }
 
 func (userController *UserController) myTeam(ctx *macaron.Context, sess session.Store) {
-	teams, err := service.GetTeamService().MyTeam(&getCurrentUserId(sess))
+	userId := getCurrentUserId(sess)
+	teams, err := service.GetTeamService().MyTeam(&userId)
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR,  err)
 		return
@@ -140,7 +141,8 @@ func (userController *UserController) myTeam(ctx *macaron.Context, sess session.
 }
 
 func (userController *UserController) myJoinTeam(ctx *macaron.Context, sess session.Store) {
-	teams, err := service.GetTeamService().MyJoinTeam(&getCurrentUserId(sess))
+	userId := getCurrentUserId(sess)
+	teams, err := service.GetTeamService().MyJoinTeam(&userId)
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return

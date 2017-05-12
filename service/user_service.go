@@ -22,6 +22,7 @@ type UserService interface {
 	Login(loginUser *model.User) (*model.User, error);
 	RegisterUser(registerUser *model.User) error
 	SearchUserByAccount(account *string) (*model.User, error)
+	HasProjectRight(projectId *int64, userId *int64) bool
 }
 
 type UserServiceImpl struct {}
@@ -53,6 +54,12 @@ func (userService *UserServiceImpl) SearchUserByAccount(account *string) (*model
 	user := new(model.User)
 	err := DB().Where("account = ?", account).First(user).Error
 	return user, err
+}
+
+func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *int64) bool {
+	projectUserMapping := &model.ProjectUserMapping{}
+	DB().Where("user_id = ? and project_id = ?", *userId, *projectId).First(projectUserMapping)
+	return projectUserMapping.ID > 0
 }
 
 

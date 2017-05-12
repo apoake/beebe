@@ -13,7 +13,8 @@ var USERNAME_PASSWORD_ERROR *ErrorCode = &ErrorCode{Code: 601, Msg: "USERNAME_PA
 var USER_NO_LOGIN *ErrorCode = &ErrorCode{Code: 602, Msg: "USER_NO_LOGIN"}
 var USER_ALREADY_LOGIN *ErrorCode = &ErrorCode{Code: 603, Msg: "USER_ALREADY_LOGIN"}
 var USER_REGISTER_ERROR *ErrorCode = &ErrorCode{Code: 604, Msg: "USER_REGISTER_ERROR"}
-var USER_ACCOUNT_EXIST *ErrorCode = &ErrorCode{Code: 604, Msg: "USER_ACCOUNT_EXIST"}
+var USER_ACCOUNT_EXIST *ErrorCode = &ErrorCode{Code: 605, Msg: "USER_ACCOUNT_EXIST"}
+var USER_NO_RIGHT *ErrorCode = &ErrorCode{Code: 606, Msg: "USER_ACCOUNT_EXIST"}
 /**
 	project error
  */
