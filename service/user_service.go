@@ -6,9 +6,14 @@ import (
 )
 
 var userService *UserServiceImpl = new(UserServiceImpl)
+var teamService *TeamServiceImpl = new(TeamServiceImpl)
 
 func GetUserService() *UserServiceImpl {
 	return userService
+}
+
+func GetTeamService() *TeamServiceImpl {
+	return teamService
 }
 
 type UserService interface {
@@ -16,6 +21,7 @@ type UserService interface {
 	CheckUserByAccount(account *string) bool;
 	Login(loginUser *model.User) (*model.User, error);
 	RegisterUser(registerUser *model.User) error
+	SearchUserByAccount(account *string) (*model.User, error)
 }
 
 type UserServiceImpl struct {}
@@ -43,27 +49,164 @@ func (userService *UserServiceImpl) RegisterUser(user *model.User) error {
 	return DB().Create(user).Error
 }
 
+func (userService *UserServiceImpl) SearchUserByAccount(account *string) (*model.User, error) {
+	user := new(model.User)
+	err := DB().Where("account = ?", account).First(user).Error
+	return user, err
+}
+
 
 type TeamService interface {
 	Create(team *model.Team) error
+	QuitTeam(team *model.Team) error
+	Transform(team *model.Team, userId *int64) error
+	ChangeRole(teamUser *model.TeamUser) error
+	MyTeam(userId *int64) (*[]model.Team, error)
+	MyJoinTeam(userId *int64) (*[]model.Team, error)
 	AddTeamUser(teamUser *model.TeamUser) error
+	RemoveTeamUser(teamUser *model.TeamUser) error
 }
 
 type TeamServiceImpl struct {}
 
-func (teamService *TeamServiceImpl) Create(team *model.Team) error {
+func (teamService *TeamServiceImpl) Create(team *model.Team) (err error) {
 	if team.UserId == 0 {
 		return errors.New("param[team.userId] is empty")
 	}
-	return DB().Create(team).Error
+	tx := DB().Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	if err = tx.Create(team).Error; err != nil {
+		return err
+	}
+	if err = tx.Create(&model.TeamUser{UserId: team.UserId, TeamId: team.ID, RoleId: model.ROLE_OWNER.ID}).Error; err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
 }
 
-func (teamService *TeamServiceImpl) AddTeamUser(teamUser *model.TeamUser) error {
-	if teamUser == nil || teamUser.UserId == 0 || teamUser.ProjectId == 0 ||
-		teamUser.RoleId == 0 || teamUser.TeamId == 0 {
-		return errors.New("param is invalid")
+func (teamService *TeamServiceImpl) QuitTeam(team *model.Team) (err error) {
+	if team.UserId == 0 {
+		return errors.New("param[team.userId] is empty")
 	}
-	return DB().Create(teamUser).Error
+	dbTeam := &model.Team{ID: team.ID}
+	if err = DB().First(dbTeam).Error; err != nil {
+		return
+	}
+	if team.UserId == dbTeam.UserId {
+		err = errors.New("role owner; can not to delete")
+		return 
+	}
+	tx := DB().Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	if err = tx.Where("user_id = ? and team_id = ?", team.UserId, team.ID).Delete(&model.ProjectUserMapping{}).Error; err != nil {
+		return
+	}
+	if err = tx.Where("user_id = ? and team_id = ?", team.UserId, team.ID).Delete(&model.TeamUser{}).Error; err != nil {
+		return 
+	}
+	return nil
+}
+
+func (teamService *TeamServiceImpl) Transform(team *model.Team, userId *int64) (err error) {
+	if team.UserId == 0 || team.ID == 0 || userId == nil {
+		return errors.New("params error")
+	}
+	dbTeam := &model.Team{ID: team.ID}
+	if err = DB().Find(dbTeam).Error; err != nil {
+		return
+	}
+	if dbTeam.UserId != team.UserId {
+		return errors.New("user is not the team owner")
+	}
+	roleUser := &model.TeamUser{}
+	if err = DB().Where("user_id = ? and team_id = ?").First(roleUser).Error; err != nil {
+		return err
+	}
+	if roleUser.ID < 0 {
+		return errors.New("not find")
+	}
+	tx := db.Begin()
+	dbTeam.UserId = *userId
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	if err = tx.Save(dbTeam).Error; err != nil {
+		return
+	}
+	if err = tx.Model(&model.TeamUser{}).
+		Where("user_id = ? and team_id = ?", team.UserId, team.ID).
+		Update("role_id", model.ROLE_MEMBER).Error; err != nil {
+		return
+	}
+	if err = tx.Model(&model.TeamUser{}).
+		Where("user_id = ? and team_id = ?", *userId, team.ID).
+		Update("role_id", model.ROLE_OWNER).Error; err != nil {
+		return
+	}
+	tx.Commit()
+	return nil
+}
+
+func (teamService *TeamServiceImpl) ChangeRole(teamUser *model.TeamUser) error {
+	return db.Model(&model.TeamUser{}).
+		Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).
+		Update("role_id", teamUser.RoleId).Error;
+}
+
+func (teamService *TeamServiceImpl) MyTeam(userId *int64) (*[]model.Team, error) {
+	teams := make([]model.Team, 0, 5)
+	err := DB().Where("user_id = ?", *userId).Find(&teams).Error
+	return &teams, err
+}
+
+func (teamService *TeamServiceImpl) MyJoinTeam(userId *int64) (*[]model.Team, error) {
+	teams := make([]model.Team, 0, 5)
+	err := DB().Select("team.id, team.name, team.remark, team.user_id").
+		Joins("inner join role_user on team.id = role_user.team_id and team.user_id != role_user.user_id").
+		Where("team.user_id = ?", *userId).Find(&teams).Error
+	return &teams, err
+}
+
+func (teamService *TeamServiceImpl) AddTeamUser(teamUser *model.TeamUser) (err error) {
+	projectUserMappings := make([]model.ProjectUserMapping, 0, 5)
+	if err = DB().Raw("SELECT DISTINCT id, project_id, team_id FROM project_user_mapping WHERE team_id = ?").Scan(&projectUserMappings).Error; err != nil {
+		return
+	}
+	tx := DB().Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	if err = tx.Create(&model.TeamUser{UserId: teamUser.UserId, TeamId: teamUser.TeamId, RoleId: model.ROLE_MEMBER.ID}).Error; err != nil {
+		return
+	}
+	if len(projectUserMappings) == 0 {
+		return nil
+	}
+	proUserDB := make([]model.ProjectUserMapping, 0, len(projectUserMappings))
+	for _, val := range projectUserMappings {
+		proUserDB = append(proUserDB, model.ProjectUserMapping{TeamId: val.TeamId, UserId:teamUser.UserId, ProjectId: val.ProjectId, AccessLevel: model.ROLE_MEMBER.ID})
+	}
+	if err = tx.Create(proUserDB).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (teamService *TeamServiceImpl) RemoveTeamUser(teamUser *model.TeamUser) error {
+
 }
 
 

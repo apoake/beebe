@@ -8,6 +8,10 @@ const (
 	USER_SESSION_KEY = "user"
 )
 
+var ROLE_OWNER *Role = &Role{ID: 1, RoleName:"OWNER"}
+var ROLE_MASTER *Role = &Role{ID: 2, RoleName:"MASTER"}
+var ROLE_MEMBER *Role = &Role{ID: 3, RoleName:"MEMBER"}
+
 type User struct {
 	Model
 	ID				int64		`gorm:"primary_key" json:"id"`
@@ -53,21 +57,12 @@ func (Role) TableName() string {
 	return "role"
 }
 
-type RoleUser struct {
+type TeamUser struct {
 	Model
 	ID 				int64		`gorm:"primary_key" json:"id"`
 	UserId 			int64		`grom:"column:user_id" json:"userId"`
 	TeamId			int64		`grom:"column:team_id" json:"teamId"`
 	RoleId			int64		`grom:"column:role_id" json:"roleId"`
-}
-
-
-type TeamUser struct {
-	Model
-	UserId 			int64		`grom:"column:"user_id" json:"userId"`
-	TeamId			int64		`grom:"column:"team_id" json:"teamId"`
-	RoleId			int64		`grom:"column:"role_Id" json:roleId"`
-	ProjectId 		int64		`grom:"column:"project_id" json:projectId"`
 }
 
 func (TeamUser) TableName() string {

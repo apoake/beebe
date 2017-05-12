@@ -155,7 +155,7 @@ type WorkSpaceServiceImpl struct {}
 
 func (workspaceService *WorkSpaceServiceImpl) GetProject(userId *int64) (*[]model.Project, error) {
 	projects := make([]model.Project, 0, 5)
-	err := DB().Select("project.id, project.name, project.introduction").Joins("inner join workspace on workspace.project_id = project.id").Where("workspace.user_id = ?", userId).Find(&projects).Error
+	err := DB().Select("project.id, project.name, project.introduction, project.is_public").Joins("inner join workspace on workspace.project_id = project.id").Where("workspace.user_id = ?", *userId).Find(&projects).Error
 	return &projects, err
 }
 
