@@ -222,7 +222,7 @@ func (teamService *TeamServiceImpl) MyJoinTeam(userId *int64) (*[]model.Team, er
 
 func (teamService *TeamServiceImpl) AddTeamUser(teamUser *model.TeamUser) (err error) {
 	projectUserMappings := make([]model.ProjectUserMapping, 0, 5)
-	if err = DB().Raw("SELECT DISTINCT id, project_id, team_id FROM project_user_mapping WHERE team_id = ?").Scan(&projectUserMappings).Error; err != nil {
+	if err = DB().Raw("SELECT DISTINCT id, project_id, team_id FROM project_user_mapping WHERE team_id = ?", teamUser.TeamId).Scan(&projectUserMappings).Error; err != nil {
 		return
 	}
 	tx := DB().Begin()
