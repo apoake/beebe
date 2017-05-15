@@ -21,6 +21,16 @@ type Config struct {
 		UserPath	string 		`yaml:"user"`
 		ProjectPath	string		`yaml:"project"`
 	}							`yaml:"upload"`
+	Web struct{
+		Port 		string		`yaml:"port"`
+		IsCors	 	bool		`yaml:"is_cors"`
+	}							`yaml:"web"`
+	Cors struct{
+		AllowOrigin		string		`yaml:"allow_origin"`
+		AllowMethods	string		`yaml:"allow_methods"`
+		AllowHeaders	string		`yaml:"allow_headers"`
+		AllowCred		bool		`yaml:"allow_credentials"`
+	}						`yaml:"cors"`
 }
 
 var config *Config

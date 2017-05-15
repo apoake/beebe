@@ -251,18 +251,6 @@ func (userController *UserController) removeTeamUser(teamUser model.TeamUser, ct
 	setSuccessResponse(ctx, nil)
 }
 
-func needLogin(ctx *macaron.Context, sess session.Store) {
-	if user := getCurrentUser(sess); user == nil {
-		ctx.Resp.Write(NoLoginResult)
-	}
-}
-
-func noNeedLogin(ctx *macaron.Context, sess session.Store) {
-	if user := getCurrentUser(sess); user != nil {
-		ctx.Resp.Write(AlreadyLoginResult)
-	}
-}
-
 func getCurrentUser(sess session.Store) *model.User {
 	usertmp := sess.Get(model.USER_SESSION_KEY)
 	if user, ok := usertmp.(model.User); ok {

@@ -3,8 +3,11 @@ package controller
 import (
 	macaron "gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
+	"github.com/martini-contrib/cors"
 	"encoding/json"
 	"beebe/model"
+	"beebe/config"
+	"strings"
 )
 
 const (
@@ -17,7 +20,7 @@ var m *macaron.Macaron
 
 func init() {
 	m = macaron.New()
-	m.Handlers(jsonResponse)
+	setHandler()
 	m.Use(macaron.Recovery())
 	m.Use(macaron.Logger())
 	m.Use(macaron.Recovery())
@@ -27,6 +30,19 @@ func init() {
 
 func Macaron() *macaron.Macaron {
 	return m
+}
+
+func setHandler() {
+	if config.GetConfig().Web.IsCors {
+		corsConfig := config.GetConfig().Cors
+		m.Use(cors.Allow(&cors.Options{
+			AllowOrigins:     strings.Split(corsConfig.AllowOrigin, ","),
+			AllowMethods:     strings.Split(corsConfig.AllowMethods, ","),
+			AllowHeaders:     strings.Split(corsConfig.AllowHeaders, ","),
+			AllowCredentials: corsConfig.AllowCred,
+		}))
+	}
+	m.Use(jsonResponse)
 }
 
 func sessionConfig() {
@@ -80,6 +96,18 @@ func jsonResponse(ctx *macaron.Context) string {
 	return ""
 }
 
+func needLogin(ctx *macaron.Context, sess session.Store) {
+	if user := getCurrentUser(sess); user == nil {
+		ctx.Resp.Write(NoLoginResult)
+	}
+}
+
+func noNeedLogin(ctx *macaron.Context, sess session.Store) {
+	if user := getCurrentUser(sess); user != nil {
+		ctx.Resp.Write(AlreadyLoginResult)
+	}
+}
+
 func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorCode, err error) {
 	if errCode != nil {
 		ctx.Data[ERROR_CODE_KEY] = *errCode
@@ -91,7 +119,6 @@ func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorC
 		}
 	}
 }
-
 
 func setSuccessResponse(ctx *macaron.Context, result interface{}) {
 	setResponse(ctx, result, model.SUCCESS, nil)

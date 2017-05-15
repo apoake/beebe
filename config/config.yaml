@@ -6,8 +6,15 @@ dbconfig:
   db_password: root
   db_pool_num: 100
   db_config: charset=utf8&parseTime=True&loc=Local
-
 upload:
   default: upload/
   user: upload/user/
   project: upload/project/
+web:
+  port: 4000
+  is_cors: true
+cors:
+  allow_origin: "*"
+  allow_methods:  POST
+  allow_headers: Origin,Content-Type
+  allow_credentials: true
