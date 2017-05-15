@@ -3,17 +3,13 @@ package log
 
 import (
 	"go.uber.org/zap"
-	"fmt"
 )
 
 var logger *zap.Logger
 
 func init() {
-	var err error
-	logger, err = zap.NewProduction()
-	if err != nil {
-		fmt.Println(err)
-	}
+	logger, _ := zap.NewProduction()
+	defer logger.Sync()
 }
 
 func Logger() *zap.Logger {

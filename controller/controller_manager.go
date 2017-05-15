@@ -8,6 +8,8 @@ import (
 	"beebe/model"
 	"beebe/config"
 	"strings"
+	"beebe/log"
+	"go.uber.org/zap"
 )
 
 const (
@@ -83,8 +85,7 @@ func jsonResponse(ctx *macaron.Context) string {
 				}
 			}
 			if err, ok := ctx.Data[ERROR_INFO_KEY]; ok {
-				// TODO logger error
-				println(err)
+				log.Logger().Error("error", zap.Any("err", err))
 			}
 			resultError, err := json.Marshal(*restResult)
 			if err != nil {
