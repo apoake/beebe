@@ -8,5 +8,6 @@ dbconfig:
   db_config: charset=utf8&parseTime=True&loc=Local
 
 upload:
-  user: upload/user
-  project: upload/project
+  default: upload/
+  user: upload/user/
+  project: upload/project/

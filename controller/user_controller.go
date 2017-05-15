@@ -9,26 +9,21 @@ import (
 	"encoding/json"
 	"beebe/utils"
 	"errors"
-	"mime/multipart"
-	"io/ioutil"
-	"beebe/config"
-	"os/user"
 )
 
 var NoLoginResult []byte
 var AlreadyLoginResult []byte
-var UserUploadPathPrefix string = config.GetConfig().Upload.UserPath
 
 type UserController struct{}
 type UserDto struct {
-	Account  string                `json:"userName"`
-	Password string                `json:"password"`
-	Email    string                `json:"email"`
+	Account  	string			`json:"userName"`
+	Opassword 	string			`json:"opassword"`
+	Password 	string          `json:"password"`
+	Email    	string          `json:"email"`
+	ImgUrl  	string			`json:"imgUrl"`
+	Name 		string			`json:"nickName"`
 }
-type UploadForm struct {
-	Name        string                `form:"name"`
-	ImageUpload *multipart.FileHeader `form:"image"`
-}
+
 
 func init() {
 	NoLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_NO_LOGIN))
@@ -39,7 +34,8 @@ func init() {
 		Macaron().Post("/register", noNeedLogin, binding.Bind(UserDto{}), userController.register)
 		Macaron().Post("/login", noNeedLogin, binding.Bind(UserDto{}), userController.login)
 		Macaron().Post("/search", needLogin, binding.Bind(UserDto{}), userController.search)
-		Macaron().Post("/upload", needLogin, binding.MultipartForm(UploadForm{}), userController.search)
+		Macaron().Post("/update", needLogin, binding.Bind(UserDto{}), userController.update)
+		Macaron().Post("/changepassword", needLogin, binding.Bind(UserDto{}), userController.changePassword)
 		Macaron().Post("/logout", needLogin, userController.logout)
 	})
 	Macaron().Group("/team", func() {
@@ -51,25 +47,6 @@ func init() {
 		Macaron().Post("/adduser", binding.Bind(model.TeamUser{}), userController.addTeamUser)
 		Macaron().Post("/removeuser", binding.Bind(model.TeamUser{}), userController.removeTeamUser)
 	}, needLogin)
-}
-
-func (userController *UserController) upload(uf UploadForm, ctx *macaron.Context, sess session.Store) {
-	if uf.Name == "" || uf.ImageUpload == nil {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	file, err := uf.ImageUpload.Open()
-	if err != nil {
-		setErrorResponse(ctx, model.SYSTEM_ERROR)
-		return
-	}
-	defer file.Close()
-	user := getCurrentUser(sess)
-	if err := utils.SaveFile(user.Account, UserUploadPathPrefix, uf.Name, file); err != nil {
-		setErrorResponse(ctx, model.SYSTEM_ERROR)
-		return
-	}
-	setSuccessResponse(ctx, nil)
 }
 
 func (userController *UserController) user(ctx *macaron.Context, sess session.Store) {
@@ -125,6 +102,39 @@ func (userController *UserController) search(userDto UserDto, ctx *macaron.Conte
 		return
 	}
 	setSuccessResponse(ctx, users)
+}
+
+func (userController *UserController) update(userDto UserDto, ctx *macaron.Context, sess session.Store) {
+	userId := getCurrentUserId(sess)
+	if userDto.Email == "" || userDto.ImgUrl == "" ||
+		userDto.Name == "" {
+		setErrorResponse(ctx, model.PARAMETER_INVALID)
+		return
+	}
+	user := &model.User{Name: userDto.Name, ImgUrl: userDto.ImgUrl, ID: userId, Email: userDto.Email}
+	if err := service.GetUserService().UpdateUser(user); err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
+	}
+	setSuccessResponse(ctx, nil)
+}
+
+func (userController *UserController) changePassword(userDto *UserDto, ctx *macaron.Context, sess session.Store) {
+	if userDto.Password == "" || userDto.Opassword == "" {
+		setErrorResponse(ctx, model.SYSTEM_ERROR)
+		return
+	}
+	userId := getCurrentUserId(sess)
+	user := service.GetUserService().FindUserByUserId(&userId)
+	if pa := utils.SHA(userDto.Password); pa != user.Password {
+		setErrorResponse(ctx, model.USER_PASSWORD_DISAGREE)
+		return
+	}
+	if err := service.GetUserService().ChangePassword(&model.User{Password: userDto.Password}); err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
+	}
+	setSuccessResponse(ctx, nil)
 }
 
 func (userController *UserController) logout(ctx *macaron.Context, sess session.Store) {

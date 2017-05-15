@@ -17,6 +17,7 @@ type Config struct {
 		ConfigStr 	string		`yaml:"db_config"`
 	}							`yaml:"dbconfig"`
 	Upload struct{
+		Default 	string		`yaml:"default"`
 		UserPath	string 		`yaml:"user"`
 		ProjectPath	string		`yaml:"project"`
 	}							`yaml:"upload"`

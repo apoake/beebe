@@ -15,6 +15,7 @@ var USER_ALREADY_LOGIN *ErrorCode = &ErrorCode{Code: 603, Msg: "USER_ALREADY_LOG
 var USER_REGISTER_ERROR *ErrorCode = &ErrorCode{Code: 604, Msg: "USER_REGISTER_ERROR"}
 var USER_ACCOUNT_EXIST *ErrorCode = &ErrorCode{Code: 605, Msg: "USER_ACCOUNT_EXIST"}
 var USER_NO_RIGHT *ErrorCode = &ErrorCode{Code: 606, Msg: "USER_ACCOUNT_EXIST"}
+var USER_PASSWORD_DISAGREE *ErrorCode = &ErrorCode{Code: 607, Msg: "USER_PASSWORD_DISAGREE"}
 /**
 	project error
  */

@@ -18,6 +18,7 @@ type User struct {
 	Account			string		`gorm:"column:account" json:"account"`
 	Password		string		`gorm:"column:password" json:"password"`
 	Name 			string		`gorm:"column:name" json:"name"`
+	ImgUrl			string		`gorm:"column:img_url" json:"imgUrl"`
 	Email 			string		`gorm:"column:email" json:"name"`
 	IsLockOut		uint		`gorm:"column:is_locked_out" json:"isLockOut" gorm:"default:0"`
 	LastLoginDate	*time.Time	`gorm:"column:last_login_date"`

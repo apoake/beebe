@@ -48,6 +48,7 @@ func (projectService *ProjectServiceImpl) UpdateProject(project *model.Project) 
 	dbProject.Name = project.Name
 	dbProject.Introduction = project.Introduction
 	dbProject.IsPublic = project.IsPublic
+	dbProject.ImgUrl = project.ImgUrl
 	return DB().Save(dbProject).Error
 }
 

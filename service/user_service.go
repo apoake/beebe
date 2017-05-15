@@ -17,18 +17,19 @@ func GetTeamService() *TeamServiceImpl {
 }
 
 type UserService interface {
-	FindUserByUserId(userId *int64) *model.User;
-	CheckUserByAccount(account *string) bool;
-	Login(loginUser *model.User) (*model.User, error);
+	FindUserByUserId(userId *int64) *model.User
+	ChangePassword(user *model.User) error
+	UpdateUser(user *model.User) error
+	CheckUserByAccount(account *string) bool
+	Login(loginUser *model.User) (*model.User, error)
 	RegisterUser(registerUser *model.User) error
 	SearchUserByAccount(account *string, limit *int64) (*[]model.User, error)
 	HasProjectRight(projectId *int64, userId *int64) bool
 }
 
-type UserServiceImpl struct {}
+type UserServiceImpl struct{}
 
-
-func (userService *UserServiceImpl) FindUserByUserId(userId *int64) *model.User{
+func (userService *UserServiceImpl) FindUserByUserId(userId *int64) *model.User {
 	user := new(model.User)
 	DB().First(user, userId)
 	return user
@@ -50,10 +51,18 @@ func (userService *UserServiceImpl) RegisterUser(user *model.User) error {
 	return DB().Create(user).Error
 }
 
-func (userService *UserServiceImpl) SearchUserByAccount(account *string, limit *int64) (*[]model.User, error){
+func (userService *UserServiceImpl) SearchUserByAccount(account *string, limit *int64) (*[]model.User, error) {
 	users := make([]model.User, 0, 5)
-	err := DB().Where("account LIKE ?", "%" + *account + "%").Limit(*limit).Find(&users).Error
+	err := DB().Where("account LIKE ?", "%" + *account+"%").Limit(*limit).Find(&users).Error
 	return &users, err
+}
+
+func (userService *UserServiceImpl) UpdateUser(user *model.User) error {
+	return DB().Model(user).Updates(model.User{Name: user.Name, ImgUrl: user.ImgUrl, Email: user.Email}).Error
+}
+
+func (userService *UserServiceImpl) ChangePassword(user *model.User) error {
+	return DB().Model(&user).Where("id = ?", user.ID).Update("password", user.Password).Error
 }
 
 func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *int64) bool {
@@ -61,7 +70,6 @@ func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *in
 	DB().Where("user_id = ? and project_id = ?", *userId, *projectId).First(projectUserMapping)
 	return projectUserMapping.ID > 0
 }
-
 
 type TeamService interface {
 	Get(teamId *int64) *model.Team
@@ -79,7 +87,7 @@ type TeamService interface {
 	HasTeamRight(teamUser *model.TeamUser) bool
 }
 
-type TeamServiceImpl struct {}
+type TeamServiceImpl struct{}
 
 func (teamService *TeamServiceImpl) Get(teamId *int64) *model.Team {
 	team := &model.Team{ID: *teamId}
@@ -111,7 +119,7 @@ func (teamService *TeamServiceImpl) Update(team *model.Team) error {
 	if team.ID == 0 {
 		return errors.New("param[team.ID] is empty")
 	}
-	return DB().Model(&model.Team{ID: team.ID}).Updates(map[string]interface{}{"name": team.Name, "remark": team.Remark}).Error
+	return DB().Model(&model.Team{ID: team.ID}).Updates(model.Team{Name: team.Name, Remark: team.Remark, LogoUrl: team.LogoUrl}).Error
 }
 
 func (teamService *TeamServiceImpl) Info(team *model.Team) (*[]model.UserRule, error) {
@@ -133,7 +141,7 @@ func (teamService *TeamServiceImpl) QuitTeam(team *model.Team) (err error) {
 	}
 	if team.UserId == dbTeam.UserId {
 		err = errors.New("role owner; can not to delete")
-		return 
+		return
 	}
 	tx := DB().Begin()
 	defer func() {
@@ -145,7 +153,7 @@ func (teamService *TeamServiceImpl) QuitTeam(team *model.Team) (err error) {
 		return
 	}
 	if err = tx.Where("user_id = ? and team_id = ?", team.UserId, team.ID).Delete(&model.TeamUser{}).Error; err != nil {
-		return 
+		return
 	}
 	return nil
 }
@@ -231,7 +239,7 @@ func (teamService *TeamServiceImpl) AddTeamUser(teamUser *model.TeamUser) (err e
 	}
 	proUserDB := make([]model.ProjectUserMapping, 0, len(projectUserMappings))
 	for _, val := range projectUserMappings {
-		proUserDB = append(proUserDB, model.ProjectUserMapping{TeamId: val.TeamId, UserId:teamUser.UserId, ProjectId: val.ProjectId, AccessLevel: model.ROLE_MEMBER.ID})
+		proUserDB = append(proUserDB, model.ProjectUserMapping{TeamId: val.TeamId, UserId: teamUser.UserId, ProjectId: val.ProjectId, AccessLevel: model.ROLE_MEMBER.ID})
 	}
 	if err = tx.Create(proUserDB).Error; err != nil {
 		return err
@@ -254,7 +262,7 @@ func (teamService *TeamServiceImpl) RemoveTeamUser(teamUser *model.TeamUser) (er
 		}
 	}()
 	if err = tx.Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).Delete(&model.TeamUser{}).Error; err != nil {
-		return 
+		return
 	}
 	if err = tx.Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).Delete(&model.ProjectUserMapping{}).Error; err != nil {
 		return

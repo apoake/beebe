@@ -5,6 +5,7 @@ type Project struct {
 	ID           int64			`gorm:"primary_key" json:"id"`
 	Version      string        	`grom:"column:"version" json:"version"`
 	Name         string        	`grom:"column:"name" json:"name"`
+	ImgUrl		 string        	`grom:"column:"img_url" json:"imgUrl"`
 	UserId       int64        	`grom:"column:"user_id json:"userId"`
 	Introduction string         `grom:"column:"introduction" json:"introduction"`
 	IsPublic     int            `grom:"column:"is_public" json:"isPublic"`

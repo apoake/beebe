@@ -16,7 +16,7 @@ func init() {
 	Macaron().Group("/project", func() {
 		Macaron().Post("/create", binding.Bind(model.Project{}), projectController.createProject)
 		Macaron().Post("/update", binding.Bind(model.Project{}), projectController.updateProject)
-		Macaron().Post("/delete", binding.Bind(model.Project{}), projectController.updateProject)
+		Macaron().Post("/delete", binding.Bind(model.Project{}), projectController.deleteProject)
 		Macaron().Post("/mine", projectController.myProjects)
 		Macaron().Post("/join", projectController.myJoiningProjects)
 	}, needLogin)
