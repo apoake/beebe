@@ -105,7 +105,7 @@ type ParamActionService interface {
 }
 // projectServiceImpl
 func (paramActionService *ParamActionServiceImpl) Get(actionId *int64) (*model.ParameterAction, error) {
-	paramAction := new(model.ParameterAction)
+	paramAction := &model.ParameterAction{ActionId: *actionId}
 	err := DB().Find(paramAction).Error
 	return paramAction, err
 }
@@ -118,6 +118,7 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	if err != nil {
 		return err
 	}
+	// TODO: 权限限制
 	if projectAction == nil {
 		return errors.New("not find project_action by actionId: " + strconv.FormatInt(parameterAction.ActionId, 10))
 	}
@@ -141,25 +142,22 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 			tx.Rollback()
 		}
 	}()
-	if dbParamAction.RequestId > 0 {
-		if err := tx.Where("parameter_id = ?", parameterAction.RequestId).Delete(model.ComplexParameter{}).Error; err != nil {
-			return err
-		}
-	}
-	if parameterAction.ResponseId > 0 {
-		if err := tx.Where("parameter_id = ?", parameterAction.ResponseId).Delete(model.ComplexParameter{}).Error; err != nil {
-			return err
-		}
+	// cleam complex_parameter
+	if err := GetComplexParameterService().DeleteByActionId(&parameterAction.ActionId, tx); err != nil {
+		return err
 	}
 	topParameter := &model.Parameter{Remark: model.TOP_REQUEST}
 	topResponseParameter := &model.Parameter{Remark: model.TOP_RESPONSE}
-	if err := tx.Save(topParameter).Error; err != nil {
+	topParams := []model.Parameter{*topParameter, *topResponseParameter}
+	if err := tx.Save(&topParams).Error; err != nil {
 		return err
 	}
-	if err := tx.Save(topResponseParameter).Error; err != nil {
-		return err
-	}
-	// TODO 重构代码
+	//if err := tx.Save(topParameter).Error; err != nil {
+	//	return err
+	//}
+	//if err := tx.Save(topResponseParameter).Error; err != nil {
+	//	return err
+	//}
 	if err := saveSubParam(tx, projectAction.ActionId, topParameter.ID, requestParams); err != nil {
 		return err
 	}

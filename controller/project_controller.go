@@ -25,7 +25,7 @@ func init() {
 		Macaron().Post("/addproject", binding.Bind(model.WorkSpace{}), projectController.addWorkspaceProject)
 		Macaron().Post("/deleteproject", binding.Bind(model.WorkSpace{}), projectController.deleteWorkspaceProject)
 	}, needLogin)
-	Macaron().Group("/acation", func() {
+	Macaron().Group("/action", func() {
 		Macaron().Post("/create", binding.Bind(model.Project{}), projectController.createProjectAction)
 		Macaron().Post("/update", binding.Bind(model.Project{}), projectController.updateProjectAction)
 		Macaron().Post("/delete", binding.Bind(model.Project{}), projectController.deleteProjectAction)
