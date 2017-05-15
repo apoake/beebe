@@ -18,6 +18,7 @@ var m *macaron.Macaron
 func init() {
 	m = macaron.New()
 	m.Handlers(jsonResponse)
+	m.Use(macaron.Recovery())
 	m.Use(macaron.Logger())
 	m.Use(macaron.Recovery())
 	m.Use(macaron.Static("public"))
@@ -91,6 +92,7 @@ func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorC
 	}
 }
 
+
 func setSuccessResponse(ctx *macaron.Context, result interface{}) {
 	setResponse(ctx, result, model.SUCCESS, nil)
 }
@@ -102,3 +104,4 @@ func setFailResponse(ctx *macaron.Context, errCode *model.ErrorCode, err error) 
 func setErrorResponse(ctx *macaron.Context, errCode *model.ErrorCode)  {
 	setResponse(ctx, nil, errCode, nil)
 }
+

@@ -3,7 +3,6 @@ package utils
 import (
 	"crypto/sha1"
 	"fmt"
-	"io/ioutil"
 	"io"
 	"crypto/md5"
 	"encoding/hex"

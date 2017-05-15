@@ -139,7 +139,7 @@ func (userController *UserController) changePassword(userDto *UserDto, ctx *maca
 
 func (userController *UserController) logout(ctx *macaron.Context, sess session.Store) {
 	if err := sess.Delete(model.USER_SESSION_KEY); err != nil {
-		setResponse(ctx, nil, model.SYSTEM_ERROR, err)
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
 	setErrorResponse(ctx, model.SUCCESS)

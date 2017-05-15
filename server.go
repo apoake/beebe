@@ -1,9 +1,9 @@
 package main
 
 import (
-	"beebe/controller"
 	"beebe/service"
 	"net/http"
+	"beebe/controller"
 )
 
 func main() {
