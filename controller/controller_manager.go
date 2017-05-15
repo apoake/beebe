@@ -16,9 +16,11 @@ const (
 var m *macaron.Macaron
 
 func init() {
-	m = macaron.Classic()
+	m = macaron.New()
 	m.Handlers(jsonResponse)
+	m.Use(macaron.Logger())
 	m.Use(macaron.Recovery())
+	m.Use(macaron.Static("public"))
 	sessionConfig()
 }
 

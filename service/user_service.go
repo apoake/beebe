@@ -21,7 +21,7 @@ type UserService interface {
 	CheckUserByAccount(account *string) bool;
 	Login(loginUser *model.User) (*model.User, error);
 	RegisterUser(registerUser *model.User) error
-	SearchUserByAccount(account *string) (*model.User, error)
+	SearchUserByAccount(account *string, limit *int64) (*[]model.User, error)
 	HasProjectRight(projectId *int64, userId *int64) bool
 }
 
@@ -50,10 +50,10 @@ func (userService *UserServiceImpl) RegisterUser(user *model.User) error {
 	return DB().Create(user).Error
 }
 
-func (userService *UserServiceImpl) SearchUserByAccount(account *string) (*model.User, error) {
-	user := new(model.User)
-	err := DB().Where("account = ?", account).First(user).Error
-	return user, err
+func (userService *UserServiceImpl) SearchUserByAccount(account *string, limit *int64) (*[]model.User, error){
+	users := make([]model.User, 0, 5)
+	err := DB().Where("account LIKE ?", "%" + *account + "%").Limit(*limit).Find(&users).Error
+	return &users, err
 }
 
 func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *int64) bool {
@@ -66,6 +66,7 @@ func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *in
 type TeamService interface {
 	Get(teamId *int64) *model.Team
 	Create(team *model.Team) error
+	Info(team *model.Team) (*[]model.UserRule, error)
 	Update(team *model.Team) error
 	QuitTeam(team *model.Team) error
 	Transform(team *model.Team, userId *int64) error
@@ -74,6 +75,8 @@ type TeamService interface {
 	MyJoinTeam(userId *int64) (*[]model.Team, error)
 	AddTeamUser(teamUser *model.TeamUser) error
 	RemoveTeamUser(teamUser *model.TeamUser) error
+	GetTeamUserByUserIdAndTeamId(teamUser *model.TeamUser) *model.TeamUser
+	HasTeamRight(teamUser *model.TeamUser) bool
 }
 
 type TeamServiceImpl struct {}
@@ -109,6 +112,15 @@ func (teamService *TeamServiceImpl) Update(team *model.Team) error {
 		return errors.New("param[team.ID] is empty")
 	}
 	return DB().Model(&model.Team{ID: team.ID}).Updates(map[string]interface{}{"name": team.Name, "remark": team.Remark}).Error
+}
+
+func (teamService *TeamServiceImpl) Info(team *model.Team) (*[]model.UserRule, error) {
+	users := make([]model.UserRule, 0, 5)
+	err := DB().Table("user").Select("user.id, user.account, user.name, team_user.role_id").Joins("inner join team_user on team_user.user_id = user.id").Scan(&users).Error
+	if err != nil {
+		return nil, err
+	}
+	return &users, nil
 }
 
 func (teamService *TeamServiceImpl) QuitTeam(team *model.Team) (err error) {
@@ -195,7 +207,7 @@ func (teamService *TeamServiceImpl) MyTeam(userId *int64) (*[]model.Team, error)
 func (teamService *TeamServiceImpl) MyJoinTeam(userId *int64) (*[]model.Team, error) {
 	teams := make([]model.Team, 0, 5)
 	err := DB().Select("team.id, team.name, team.remark, team.user_id").
-		Joins("inner join role_user on team.id = role_user.team_id and team.user_id != role_user.user_id").
+		Joins("inner join team_user on team.id = team_user.team_id and team.user_id != team_user.user_id").
 		Where("team.user_id = ?", *userId).Find(&teams).Error
 	return &teams, err
 }
@@ -250,4 +262,15 @@ func (teamService *TeamServiceImpl) RemoveTeamUser(teamUser *model.TeamUser) (er
 	return nil
 }
 
+func (teamService *TeamServiceImpl) GetTeamUserByUserIdAndTeamId(teamUser *model.TeamUser) *model.TeamUser {
+	DB().Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).First(teamUser)
+	return teamUser
+}
 
+func (teamService *TeamServiceImpl) HasTeamRight(teamUser *model.TeamUser) bool {
+	dbTeamUser := teamService.GetTeamUserByUserIdAndTeamId(teamUser)
+	if dbTeamUser.RoleId > model.ROLE_MASTER.ID {
+		return false
+	}
+	return true
+}

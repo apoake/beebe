@@ -18,8 +18,8 @@ type User struct {
 	Account			string		`gorm:"column:account" json:"account"`
 	Password		string		`gorm:"column:password" json:"password"`
 	Name 			string		`gorm:"column:name" json:"name"`
-	Email 			string		`gorm:"column:name" json:"name"`
-	IsLockOut		uint		`gorm:"column:isLockOut" json:"isLockOut" gorm:"default:0"`
+	Email 			string		`gorm:"column:email" json:"name"`
+	IsLockOut		uint		`gorm:"column:is_locked_out" json:"isLockOut" gorm:"default:0"`
 	LastLoginDate	*time.Time	`gorm:"column:last_login_date"`
 }
 
@@ -29,6 +29,13 @@ type UserVo struct {
 	Account			string		`json:"account"`
 	Name 			string		`json:"name"`
 	Email 			string		`json:"email"`
+}
+
+type UserRule struct {
+	ID				int64		`gorm:"primary_key" json:"id"`
+	Account			string		`gorm:"column:account" json:"account"`
+	Name 			string		`gorm:"column:name" json:"name"`
+	RoleId			int64		`gorm:"column:role_id" json:"roleId"`
 }
 
 func (User) TableName() string {
@@ -72,10 +79,10 @@ func (TeamUser) TableName() string {
 type Team struct {
 	Model
 	ID 			int64		`gorm:"primary_key" json:"id"`
-	Name 		string		`grom:"column:"name" json:"name"`
-	Remark		string		`grom:"column:"remark" json:"remark"`
-	LogoUrl		string		`grom:"column:"logo_url" json:"logoUrl"`
-	UserId		int64		`grom:"column:"user_id" json:"userId"`
+	Name 		string		`grom:"column:name" json:"name"`
+	Remark		string		`grom:"column:remark" json:"remark"`
+	LogoUrl		string		`grom:"column:logo_url" json:"logoUrl"`
+	UserId		int64		`grom:"column:user_id" json:"userId"`
 }
 
 func (Team) TableName() string {
@@ -85,8 +92,8 @@ func (Team) TableName() string {
 type WorkSpace struct {
 	Model
 	ID 			int64		`gorm:"primary_key" json:"id"`
-	UserId		int64		`grom:"column:"user_id" json:"userId"`
-	ProjectId	int64		`grom:"column:"project_id" json:"projectId"`
+	UserId		int64		`grom:"column:user_id" json:"userId"`
+	ProjectId	int64		`grom:"column:project_id" json:"projectId"`
 }
 
 func (WorkSpace) TableName() string {

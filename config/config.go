@@ -15,8 +15,11 @@ type Config struct {
 		DbName		string		`yaml:"db_name"`
 		Password	string		`yaml:"db_password"`
 		ConfigStr 	string		`yaml:"db_config"`
-			 }		`yaml:"dbconfig"`
-
+	}							`yaml:"dbconfig"`
+	Upload struct{
+		UserPath	string 		`yaml:"user"`
+		ProjectPath	string		`yaml:"project"`
+	}							`yaml:"upload"`
 }
 
 var config *Config

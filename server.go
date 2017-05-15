@@ -3,13 +3,10 @@ package main
 import (
 	"beebe/controller"
 	"beebe/service"
+	"net/http"
 )
 
 func main() {
-	m := controller.Macaron()
-	m.Get("/", func() string {
-		return "Hello world!"
-	})
-	m.Run()
+	http.ListenAndServe("0.0.0.0:4000", controller.Macaron())
 	defer service.DB().Close()
 }

@@ -9,36 +9,71 @@ import (
 	"encoding/json"
 	"beebe/utils"
 	"errors"
+	"mime/multipart"
+	"io/ioutil"
+	"beebe/config"
+	"os/user"
 )
 
 var NoLoginResult []byte
 var AlreadyLoginResult []byte
+var UserUploadPathPrefix string = config.GetConfig().Upload.UserPath
 
-type UserController struct {}
+type UserController struct{}
 type UserDto struct {
-	Account			string 				`json:"userName"`
-	Password		string				`json:"password"`
-	Email			string				`json:"email"`
+	Account  string                `json:"userName"`
+	Password string                `json:"password"`
+	Email    string                `json:"email"`
+}
+type UploadForm struct {
+	Name        string                `form:"name"`
+	ImageUpload *multipart.FileHeader `form:"image"`
 }
 
 func init() {
-	NoLoginResult, _ = json.Marshal( model.ConvertRestResult(model.USER_NO_LOGIN))
+	NoLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_NO_LOGIN))
 	AlreadyLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_ALREADY_LOGIN))
 	userController := new(UserController)
 	Macaron().Group("/user", func() {
+		Macaron().Post("/", needLogin, userController.user)
 		Macaron().Post("/register", noNeedLogin, binding.Bind(UserDto{}), userController.register)
 		Macaron().Post("/login", noNeedLogin, binding.Bind(UserDto{}), userController.login)
 		Macaron().Post("/search", needLogin, binding.Bind(UserDto{}), userController.search)
+		Macaron().Post("/upload", needLogin, binding.MultipartForm(UploadForm{}), userController.search)
 		Macaron().Post("/logout", needLogin, userController.logout)
 	})
-	Macaron().Group("/team", func(){
+	Macaron().Group("/team", func() {
 		Macaron().Post("/create", binding.Bind(model.Team{}), userController.createTeam)
 		Macaron().Post("/update", binding.Bind(model.Team{}), userController.updateTeam)
+		Macaron().Post("/info", binding.Bind(model.Team{}), userController.teamInfo)
 		Macaron().Post("/mine", userController.myTeam)
 		Macaron().Post("/join", userController.myJoinTeam)
 		Macaron().Post("/adduser", binding.Bind(model.TeamUser{}), userController.addTeamUser)
 		Macaron().Post("/removeuser", binding.Bind(model.TeamUser{}), userController.removeTeamUser)
 	}, needLogin)
+}
+
+func (userController *UserController) upload(uf UploadForm, ctx *macaron.Context, sess session.Store) {
+	if uf.Name == "" || uf.ImageUpload == nil {
+		setErrorResponse(ctx, model.PARAMETER_INVALID)
+		return
+	}
+	file, err := uf.ImageUpload.Open()
+	if err != nil {
+		setErrorResponse(ctx, model.SYSTEM_ERROR)
+		return
+	}
+	defer file.Close()
+	user := getCurrentUser(sess)
+	if err := utils.SaveFile(user.Account, UserUploadPathPrefix, uf.Name, file); err != nil {
+		setErrorResponse(ctx, model.SYSTEM_ERROR)
+		return
+	}
+	setSuccessResponse(ctx, nil)
+}
+
+func (userController *UserController) user(ctx *macaron.Context, sess session.Store) {
+	setSuccessResponse(ctx, getCurrentUser(sess))
 }
 
 func (userController *UserController) register(user UserDto, ctx *macaron.Context) {
@@ -50,7 +85,7 @@ func (userController *UserController) register(user UserDto, ctx *macaron.Contex
 		setErrorResponse(ctx, model.USER_ACCOUNT_EXIST)
 		return
 	}
-	err := service.GetUserService().RegisterUser(&model.User{Account: user.Account, Password: utils.SHA(user.Password), Email: user.Email})
+	err := service.GetUserService().RegisterUser(&model.User{Account: user.Account, Password: utils.SHA(user.Password), Email: user.Email, Name: user.Account})
 	if err != nil {
 		setFailResponse(ctx, model.USER_REGISTER_ERROR, err)
 		return
@@ -74,7 +109,7 @@ func (userController *UserController) login(userLogin UserDto, ctx *macaron.Cont
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
-	setSuccessResponse(ctx, model.User{Name:user.Name, ID:user.ID, Email:user.Email, Account:user.Account})
+	setSuccessResponse(ctx, model.User{Name: user.Name, ID: user.ID, Email: user.Email, Account: user.Account})
 }
 
 func (userController *UserController) search(userDto UserDto, ctx *macaron.Context) {
@@ -83,12 +118,13 @@ func (userController *UserController) search(userDto UserDto, ctx *macaron.Conte
 		setSuccessResponse(ctx, nil)
 		return
 	}
-	user, err := service.GetUserService().SearchUserByAccount(&accountName)
+	var limit int64 = 5
+	users, err := service.GetUserService().SearchUserByAccount(&accountName, &limit)
 	if err != nil {
 		setErrorResponse(ctx, model.SYSTEM_ERROR)
 		return
 	}
-	setSuccessResponse(ctx, user)
+	setSuccessResponse(ctx, users)
 }
 
 func (userController *UserController) logout(ctx *macaron.Context, sess session.Store) {
@@ -119,7 +155,7 @@ func (userController *UserController) updateTeam(team model.Team, ctx *macaron.C
 		return
 	}
 	teamDB := service.GetTeamService().Get(&team.ID)
-	if teamDB.UserId !=  getCurrentUserId(sess) {
+	if teamDB.UserId != getCurrentUserId(sess) {
 		setErrorResponse(ctx, model.TEAM_NOT_SELF)
 		return
 	}
@@ -130,11 +166,29 @@ func (userController *UserController) updateTeam(team model.Team, ctx *macaron.C
 	setSuccessResponse(ctx, nil)
 }
 
+func (userController *UserController) teamInfo(team model.Team, ctx *macaron.Context, sess session.Store) {
+	if team.ID == 0 {
+		setErrorResponse(ctx, model.PARAMETER_INVALID)
+		return
+	}
+	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: team.ID}) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
+	result, err := service.GetTeamService().Info(&team)
+	if err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
+	}
+	setSuccessResponse(ctx, result)
+}
+
+
 func (userController *UserController) myTeam(ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
 	teams, err := service.GetTeamService().MyTeam(&userId)
 	if err != nil {
-		setFailResponse(ctx, model.SYSTEM_ERROR,  err)
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
 	setSuccessResponse(ctx, teams)
@@ -151,14 +205,18 @@ func (userController *UserController) myJoinTeam(ctx *macaron.Context, sess sess
 }
 
 func (userController *UserController) addTeamUser(teamUser model.TeamUser, ctx *macaron.Context, sess session.Store) {
-	if teamUser.TeamId == 0 {
+	if teamUser.TeamId == 0 || teamUser.UserId == 0 {
 		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}
 	if teamUser.RoleId == 0 {
 		teamUser.RoleId = model.ROLE_MEMBER.ID
 	}
-	err := service.GetTeamService().AddTeamUser(&model.TeamUser{TeamId: teamUser.TeamId, RoleId:teamUser.RoleId, UserId: getCurrentUserId(sess)})
+	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: teamUser.TeamId}) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
+	err := service.GetTeamService().AddTeamUser(&model.TeamUser{TeamId: teamUser.TeamId, RoleId: teamUser.RoleId, UserId: teamUser.UserId})
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
@@ -171,14 +229,17 @@ func (userController *UserController) removeTeamUser(teamUser model.TeamUser, ct
 		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}
-	err := service.GetTeamService().RemoveTeamUser(&model.TeamUser{TeamId: teamUser.TeamId, UserId: getCurrentUserId(sess)})
+	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: teamUser.TeamId}) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
+	err := service.GetTeamService().RemoveTeamUser(&model.TeamUser{TeamId: teamUser.TeamId, UserId: teamUser.UserId})
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
 	setSuccessResponse(ctx, nil)
 }
-
 
 func needLogin(ctx *macaron.Context, sess session.Store) {
 	if user := getCurrentUser(sess); user == nil {
