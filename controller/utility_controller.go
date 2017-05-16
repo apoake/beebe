@@ -7,8 +7,9 @@ import (
 	"github.com/go-macaron/session"
 	"beebe/model"
 	"beebe/utils"
-	"io/ioutil"
 	"github.com/go-macaron/binding"
+	"io"
+	"os"
 )
 
 var BusMap map[int64]string
@@ -34,8 +35,8 @@ func init() {
 	BusMap[0] = config.GetConfig().Upload.Default
 	BusMap[1] = config.GetConfig().Upload.UserPath
 	BusMap[2] = config.GetConfig().Upload.ProjectPath
+	BusMap[3] = config.GetConfig().Upload.TeamPath
 }
-
 
 func (commonController *CommonController) upload(uploadForm UploadForm, ctx *macaron.Context, sess session.Store) {
 	var busPath string
@@ -49,17 +50,19 @@ func (commonController *CommonController) upload(uploadForm UploadForm, ctx *mac
 	}
 	file, err := uploadForm.ImageUpload.Open()
 	if err != nil {
-		setErrorResponse(ctx, model.SYSTEM_ERROR)
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
 	defer file.Close()
-	b, err := ioutil.ReadAll(file)
+	filePath := busPath + utils.GetGuid() + "." + uploadForm.Format
+	out, err := os.Create(config.GetConfig().Upload.Base + filePath)
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
-	filePath := busPath + utils.GetGuid() + "." + uploadForm.Format
-	if err = ioutil.WriteFile(filePath, b, 0644); err != nil {
+	defer out.Close()
+	_, err = io.Copy(out, file)
+	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}

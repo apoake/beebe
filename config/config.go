@@ -21,9 +21,11 @@ type Config struct {
 		MaxLifeTime	time.Duration	`yaml:"db_maxlifetime"`
 	}							`yaml:"dbconfig"`
 	Upload struct{
+		Base		string		`yaml:"base"`
 		Default 	string		`yaml:"default"`
 		UserPath	string 		`yaml:"user"`
 		ProjectPath	string		`yaml:"project"`
+		TeamPath	string		`yaml:"team"`
 	}							`yaml:"upload"`
 	Web struct{
 		Port 		string		`yaml:"port"`

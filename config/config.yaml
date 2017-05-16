@@ -9,9 +9,11 @@ dbconfig:
   db_maxidle: 10
   db_maxlifetime: 5
 upload:
+  base: public/
   default: upload/
   user: upload/user/
   project: upload/project/
+  team: upload/team/
 web:
   port: 4000
   is_cors: true

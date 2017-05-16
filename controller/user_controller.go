@@ -15,15 +15,6 @@ var NoLoginResult []byte
 var AlreadyLoginResult []byte
 
 type UserController struct{}
-type UserDto struct {
-	Account  	string			`json:"userName"`
-	Opassword 	string			`json:"opassword"`
-	Password 	string          `json:"password"`
-	Email    	string          `json:"email"`
-	ImgUrl  	string			`json:"imgUrl"`
-	Name 		string			`json:"nickName"`
-}
-
 
 func init() {
 	NoLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_NO_LOGIN))
@@ -31,15 +22,15 @@ func init() {
 	userController := new(UserController)
 	Macaron().Group("/user", func() {
 		Macaron().Post("/", needLogin, userController.user)
-		Macaron().Post("/register", noNeedLogin, binding.Bind(UserDto{}), userController.register)
-		Macaron().Post("/login", noNeedLogin, binding.Bind(UserDto{}), userController.login)
-		Macaron().Post("/search", needLogin, binding.Bind(UserDto{}), userController.search)
-		Macaron().Post("/update", needLogin, binding.Bind(UserDto{}), userController.update)
-		Macaron().Post("/changepassword", needLogin, binding.Bind(UserDto{}), userController.changePassword)
+		Macaron().Post("/register", noNeedLogin, binding.Bind(UserRegister{}), userController.register)
+		Macaron().Post("/login", noNeedLogin, binding.Bind(UserLogin{}), userController.login)
+		Macaron().Post("/search", needLogin, binding.Bind(UserSearch{}), userController.search)
+		Macaron().Post("/update", needLogin, binding.Bind(UserUpdate{}), userController.update)
+		Macaron().Post("/changepassword", needLogin, binding.Bind(UserPassword{}), userController.changePassword)
 		Macaron().Post("/logout", needLogin, userController.logout)
 	})
 	Macaron().Group("/team", func() {
-		Macaron().Post("/create", binding.Bind(model.Team{}), userController.createTeam)
+		Macaron().Post("/create", binding.Bind(TeamAdd{}), userController.createTeam)
 		Macaron().Post("/update", binding.Bind(model.Team{}), userController.updateTeam)
 		Macaron().Post("/info", binding.Bind(model.Team{}), userController.teamInfo)
 		Macaron().Post("/mine", userController.myTeam)
@@ -49,15 +40,17 @@ func init() {
 	}, needLogin)
 }
 
+/**
+	获取当前用户信息
+ */
 func (userController *UserController) user(ctx *macaron.Context, sess session.Store) {
 	setSuccessResponse(ctx, getCurrentUser(sess))
 }
 
-func (userController *UserController) register(user UserDto, ctx *macaron.Context) {
-	if user.Account == "" || user.Password == "" {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
+/**
+	用户注册
+ */
+func (userController *UserController) register(user UserRegister, ctx *macaron.Context) {
 	if service.GetUserService().CheckUserByAccount(&user.Account) {
 		setErrorResponse(ctx, model.USER_ACCOUNT_EXIST)
 		return
@@ -70,15 +63,12 @@ func (userController *UserController) register(user UserDto, ctx *macaron.Contex
 	setSuccessResponse(ctx, nil)
 }
 
-func (userController *UserController) login(userLogin UserDto, ctx *macaron.Context, sess session.Store) {
-	userName := userLogin.Account
-	password := userLogin.Password
-	if userName == "" || password == "" {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	user, ok := service.GetUserService().Login(&model.User{Account: userName, Password: utils.SHA(password)})
-	if ok {
+/**
+	用户登入
+ */
+func (userController *UserController) login(userLogin UserLogin, ctx *macaron.Context, sess session.Store) {
+	user, ok := service.GetUserService().Login(&model.User{Account: userLogin.Account, Password: utils.SHA(userLogin.Password)})
+	if !ok {
 		setErrorResponse(ctx, model.USERNAME_PASSWORD_ERROR)
 		return
 	}
@@ -89,14 +79,9 @@ func (userController *UserController) login(userLogin UserDto, ctx *macaron.Cont
 	setSuccessResponse(ctx, model.User{Name: user.Name, ID: user.ID, Email: user.Email, Account: user.Account})
 }
 
-func (userController *UserController) search(userDto UserDto, ctx *macaron.Context) {
-	accountName := userDto.Account
-	if accountName == "" {
-		setSuccessResponse(ctx, nil)
-		return
-	}
+func (userController *UserController) search(userSearch UserSearch, ctx *macaron.Context) {
 	var limit int64 = 5
-	users, err := service.GetUserService().SearchUserByAccount(&accountName, &limit)
+	users, err := service.GetUserService().SearchUserByAccount(&userSearch.Account, &limit)
 	if err != nil {
 		setErrorResponse(ctx, model.SYSTEM_ERROR)
 		return
@@ -104,14 +89,9 @@ func (userController *UserController) search(userDto UserDto, ctx *macaron.Conte
 	setSuccessResponse(ctx, users)
 }
 
-func (userController *UserController) update(userDto UserDto, ctx *macaron.Context, sess session.Store) {
+func (userController *UserController) update(userUpdate UserUpdate, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
-	if userDto.Email == "" || userDto.ImgUrl == "" ||
-		userDto.Name == "" {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	user := &model.User{Name: userDto.Name, ImgUrl: userDto.ImgUrl, ID: userId, Email: userDto.Email}
+	user := &model.User{Name: userUpdate.Name, ImgUrl: userUpdate.ImgUrl, ID: userId, Email: userUpdate.Email}
 	if err := service.GetUserService().UpdateUser(user); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
@@ -119,18 +99,14 @@ func (userController *UserController) update(userDto UserDto, ctx *macaron.Conte
 	setSuccessResponse(ctx, nil)
 }
 
-func (userController *UserController) changePassword(userDto *UserDto, ctx *macaron.Context, sess session.Store) {
-	if userDto.Password == "" || userDto.Opassword == "" {
-		setErrorResponse(ctx, model.SYSTEM_ERROR)
-		return
-	}
+func (userController *UserController) changePassword(userPassword *UserPassword, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
 	user, _ := service.GetUserService().FindUserByUserId(&userId)
-	if pa := utils.SHA(userDto.Password); pa != user.Password {
+	if pa := utils.SHA(userPassword.Opassword); pa != user.Password {
 		setErrorResponse(ctx, model.USER_PASSWORD_DISAGREE)
 		return
 	}
-	if err := service.GetUserService().ChangePassword(&model.User{Password: userDto.Password}); err != nil {
+	if err := service.GetUserService().ChangePassword(&model.User{Password: utils.SHA(userPassword.Password)}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
@@ -145,13 +121,9 @@ func (userController *UserController) logout(ctx *macaron.Context, sess session.
 	setErrorResponse(ctx, model.SUCCESS)
 }
 
-func (userController *UserController) createTeam(team model.Team, ctx *macaron.Context, sess session.Store) {
-	if team.Name == "" {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
+func (userController *UserController) createTeam(teamAdd TeamAdd, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
-	err := service.GetTeamService().Create(&model.Team{Name: team.Name, UserId: userId, Remark: team.Name})
+	err := service.GetTeamService().Create(&model.Team{Name: teamAdd.Name, UserId: userId, Remark: teamAdd.Remark, LogoUrl: teamAdd.LogoUrl})
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return

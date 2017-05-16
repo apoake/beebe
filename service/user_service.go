@@ -213,9 +213,9 @@ func (teamService *TeamServiceImpl) MyTeam(userId *int64) (*[]model.Team, error)
 
 func (teamService *TeamServiceImpl) MyJoinTeam(userId *int64) (*[]model.Team, error) {
 	teams := make([]model.Team, 0, 5)
-	err := DB().Select("team.id, team.name, team.remark, team.user_id").
+	err := DB().Select("team.id, team.name, team.remark, team.user_id, team.logo_url").
 		Joins("inner join team_user on team.id = team_user.team_id and team.user_id != team_user.user_id").
-		Where("team.user_id = ?", *userId).Find(&teams).Error
+		Where("team_user.user_id = ?", *userId).Find(&teams).Error
 	return &teams, err
 }
 
