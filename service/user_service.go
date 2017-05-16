@@ -124,7 +124,7 @@ func (teamService *TeamServiceImpl) Update(team *model.Team) error {
 
 func (teamService *TeamServiceImpl) Info(team *model.Team) (*[]model.UserRule, error) {
 	users := make([]model.UserRule, 0, 5)
-	err := DB().Table("user").Select("user.id, user.account, user.name, team_user.role_id").Joins("inner join team_user on team_user.user_id = user.id").Scan(&users).Error
+	err := DB().Table("user").Select("user.id, user.account, user.name, team_user.role_id").Joins("inner join team_user on team_user.user_id = user.id").Where("team_user.team_id = ?", team.ID).Scan(&users).Error
 	if err != nil {
 		return nil, err
 	}
@@ -229,6 +229,8 @@ func (teamService *TeamServiceImpl) AddTeamUser(teamUser *model.TeamUser) (err e
 	defer func() {
 		if err != nil {
 			tx.Rollback()
+		} else {
+			tx.Commit()
 		}
 	}()
 	if err = tx.Create(&model.TeamUser{UserId: teamUser.UserId, TeamId: teamUser.TeamId, RoleId: model.ROLE_MEMBER.ID}).Error; err != nil {
@@ -259,6 +261,8 @@ func (teamService *TeamServiceImpl) RemoveTeamUser(teamUser *model.TeamUser) (er
 	defer func() {
 		if err != nil {
 			tx.Rollback()
+		} else {
+			tx.Commit()
 		}
 	}()
 	if err = tx.Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).Delete(&model.TeamUser{}).Error; err != nil {

@@ -93,6 +93,7 @@ func (projectService *ProjectServiceImpl) GetJoiningProjects(userId *int64) (*[]
 type ProjectActionService interface {
 	Get(actionId *int64) (*model.ProjectAction, error)
 	GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error)
+	GetByProjectIdAndUrl(projectId *int64, url *string) (*model.ProjectAction, error)
 	CreateProjectAction(projectAction *model.ProjectAction) error
 	UpdateProjectAction(projectAction *model.ProjectAction) error
 	Delete(actionId *int64) error
@@ -111,6 +112,12 @@ func (projectActionService *ProjectActionServiceImpl) GetAllByProjectPage(projec
 	projectActions := make([]model.ProjectAction, *limit)
 	err := DB().Offset(start).Limit(limit).Where("project_id = ?", projectId).Find(projectActions).Error
 	return &projectActions, err
+}
+
+func (projectActionService *ProjectActionServiceImpl) GetByProjectIdAndUrl(projectId *int64, url *string) (*model.ProjectAction, error) {
+	projectAction := &model.ProjectAction{}
+	err := DB().Where("project_id = ? and request_url = ?", *projectId, *url).First(projectAction).Error
+	return projectAction, err
 }
 
 func (projectActionService *ProjectActionServiceImpl) CreateProjectAction(projectAction *model.ProjectAction) error {
