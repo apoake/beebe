@@ -16,6 +16,7 @@ var USER_REGISTER_ERROR *ErrorCode = &ErrorCode{Code: 604, Msg: "USER_REGISTER_E
 var USER_ACCOUNT_EXIST *ErrorCode = &ErrorCode{Code: 605, Msg: "USER_ACCOUNT_EXIST"}
 var USER_NO_RIGHT *ErrorCode = &ErrorCode{Code: 606, Msg: "USER_ACCOUNT_EXIST"}
 var USER_PASSWORD_DISAGREE *ErrorCode = &ErrorCode{Code: 607, Msg: "USER_PASSWORD_DISAGREE"}
+var TEAM_NO_EXIST *ErrorCode = &ErrorCode{Code: 608, Msg: "TEAM_NO_EXIST"}
 /**
 	project error
  */

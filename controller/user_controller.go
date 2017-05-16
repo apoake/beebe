@@ -77,9 +77,9 @@ func (userController *UserController) login(userLogin UserDto, ctx *macaron.Cont
 		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}
-	user, err := service.GetUserService().Login(&model.User{Account: userName, Password: utils.SHA(password)})
-	if err != nil || user == nil {
-		setFailResponse(ctx, model.USERNAME_PASSWORD_ERROR, err)
+	user, ok := service.GetUserService().Login(&model.User{Account: userName, Password: utils.SHA(password)})
+	if ok {
+		setErrorResponse(ctx, model.USERNAME_PASSWORD_ERROR)
 		return
 	}
 	if err := sess.Set(model.USER_SESSION_KEY, *user); err != nil {
@@ -125,7 +125,7 @@ func (userController *UserController) changePassword(userDto *UserDto, ctx *maca
 		return
 	}
 	userId := getCurrentUserId(sess)
-	user := service.GetUserService().FindUserByUserId(&userId)
+	user, _ := service.GetUserService().FindUserByUserId(&userId)
 	if pa := utils.SHA(userDto.Password); pa != user.Password {
 		setErrorResponse(ctx, model.USER_PASSWORD_DISAGREE)
 		return
@@ -164,7 +164,11 @@ func (userController *UserController) updateTeam(team model.Team, ctx *macaron.C
 		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}
-	teamDB := service.GetTeamService().Get(&team.ID)
+	teamDB, ok := service.GetTeamService().Get(&team.ID)
+	if !ok {
+		setErrorResponse(ctx, model.TEAM_NO_EXIST)
+		return
+	}
 	if teamDB.UserId != getCurrentUserId(sess) {
 		setErrorResponse(ctx, model.TEAM_NOT_SELF)
 		return

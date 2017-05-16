@@ -17,11 +17,11 @@ func GetTeamService() *TeamServiceImpl {
 }
 
 type UserService interface {
-	FindUserByUserId(userId *int64) *model.User
+	FindUserByUserId(userId *int64) (*model.User, bool)
 	ChangePassword(user *model.User) error
 	UpdateUser(user *model.User) error
 	CheckUserByAccount(account *string) bool
-	Login(loginUser *model.User) (*model.User, error)
+	Login(loginUser *model.User) (*model.User, bool)
 	RegisterUser(registerUser *model.User) error
 	SearchUserByAccount(account *string, limit *int64) (*[]model.User, error)
 	HasProjectRight(projectId *int64, userId *int64) bool
@@ -29,10 +29,10 @@ type UserService interface {
 
 type UserServiceImpl struct{}
 
-func (userService *UserServiceImpl) FindUserByUserId(userId *int64) *model.User {
+func (userService *UserServiceImpl) FindUserByUserId(userId *int64) (*model.User, bool) {
 	user := new(model.User)
-	DB().First(user, userId)
-	return user
+	isExist := !DB().First(user, userId).RecordNotFound()
+	return user, isExist
 }
 
 func (userService *UserServiceImpl) CheckUserByAccount(account *string) bool {
@@ -41,10 +41,10 @@ func (userService *UserServiceImpl) CheckUserByAccount(account *string) bool {
 	return user.ID > 0
 }
 
-func (userService *UserServiceImpl) Login(loginUser *model.User) (*model.User, error) {
+func (userService *UserServiceImpl) Login(loginUser *model.User) (*model.User, bool) {
 	user := new(model.User)
-	err := DB().Where("account = ? and password = ?", loginUser.Account, loginUser.Password).Find(user).Error
-	return user, err
+	isExist := !DB().Where("account = ? and password = ?", loginUser.Account, loginUser.Password).Find(user).RecordNotFound()
+	return user, isExist
 }
 
 func (userService *UserServiceImpl) RegisterUser(user *model.User) error {
@@ -67,12 +67,11 @@ func (userService *UserServiceImpl) ChangePassword(user *model.User) error {
 
 func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *int64) bool {
 	projectUserMapping := &model.ProjectUserMapping{}
-	DB().Where("user_id = ? and project_id = ?", *userId, *projectId).First(projectUserMapping)
-	return projectUserMapping.ID > 0
+	return !DB().Where("user_id = ? and project_id = ?", *userId, *projectId).First(projectUserMapping).RecordNotFound()
 }
 
 type TeamService interface {
-	Get(teamId *int64) *model.Team
+	Get(teamId *int64) (*model.Team, bool)
 	Create(team *model.Team) error
 	Info(team *model.Team) (*[]model.UserRule, error)
 	Update(team *model.Team) error
@@ -83,16 +82,16 @@ type TeamService interface {
 	MyJoinTeam(userId *int64) (*[]model.Team, error)
 	AddTeamUser(teamUser *model.TeamUser) error
 	RemoveTeamUser(teamUser *model.TeamUser) error
-	GetTeamUserByUserIdAndTeamId(teamUser *model.TeamUser) *model.TeamUser
+	GetTeamUserByUserIdAndTeamId(teamUser *model.TeamUser) (*model.TeamUser, bool)
 	HasTeamRight(teamUser *model.TeamUser) bool
 }
 
 type TeamServiceImpl struct{}
 
-func (teamService *TeamServiceImpl) Get(teamId *int64) *model.Team {
+func (teamService *TeamServiceImpl) Get(teamId *int64) (*model.Team, bool) {
 	team := &model.Team{ID: *teamId}
-	DB().First(team)
-	return team
+	isExist := !DB().First(team).RecordNotFound()
+	return team, isExist
 }
 
 func (teamService *TeamServiceImpl) Create(team *model.Team) (err error) {
@@ -274,15 +273,13 @@ func (teamService *TeamServiceImpl) RemoveTeamUser(teamUser *model.TeamUser) (er
 	return nil
 }
 
-func (teamService *TeamServiceImpl) GetTeamUserByUserIdAndTeamId(teamUser *model.TeamUser) *model.TeamUser {
-	DB().Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).First(teamUser)
-	return teamUser
+func (teamService *TeamServiceImpl) GetTeamUserByUserIdAndTeamId(teamUser *model.TeamUser) (*model.TeamUser, bool) {
+	teamUserDB := &model.TeamUser{}
+	isExist := !DB().Where("user_id = ? and team_id = ?", teamUser.UserId, teamUser.TeamId).First(teamUserDB).RecordNotFound()
+	return teamUserDB, isExist
 }
 
 func (teamService *TeamServiceImpl) HasTeamRight(teamUser *model.TeamUser) bool {
-	dbTeamUser := teamService.GetTeamUserByUserIdAndTeamId(teamUser)
-	if dbTeamUser.RoleId > model.ROLE_MASTER.ID {
-		return false
-	}
-	return true
+	_, ok := teamService.GetTeamUserByUserIdAndTeamId(teamUser)
+	return ok
 }
