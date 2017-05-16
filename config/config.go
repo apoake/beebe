@@ -5,6 +5,7 @@ import (
 	"beebe/log"
 	"io/ioutil"
 	"os"
+	"time"
 )
 
 type Config struct {
@@ -15,6 +16,9 @@ type Config struct {
 		DbName		string		`yaml:"db_name"`
 		Password	string		`yaml:"db_password"`
 		ConfigStr 	string		`yaml:"db_config"`
+		MaxOpen		int			`yaml:"db_maxopen"`
+		MaxIdle		int			`yaml:"db_maxidle"`
+		MaxLifeTime	time.Duration	`yaml:"db_maxlifetime"`
 	}							`yaml:"dbconfig"`
 	Upload struct{
 		Default 	string		`yaml:"default"`

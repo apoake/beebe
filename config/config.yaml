@@ -4,8 +4,10 @@ dbconfig:
   db_name: bee
   db_user: root
   db_password: root
-  db_pool_num: 100
   db_config: charset=utf8&parseTime=True&loc=Local
+  db_maxopen: 100
+  db_maxidle: 10
+  db_maxlifetime: 5
 upload:
   default: upload/
   user: upload/user/

@@ -7,15 +7,19 @@ import (
 	"beebe/config"
 	"beebe/log"
 	"os"
+	"time"
 )
 
 var db *gorm.DB
 
 func init() {
 	var err error
-	config := config.GetConfig().DbConfig
-	db, err = gorm.Open(config.Dialect,
-		fmt.Sprintf("%s:%s@%s/%s?%s", config.UserName, config.Password, config.Host, config.DbName, config.ConfigStr))
+	conf := config.GetConfig().DbConfig
+	db, err = gorm.Open(conf.Dialect,
+		fmt.Sprintf("%s:%s@%s/%s?%s", conf.UserName, conf.Password, conf.Host, conf.DbName, conf.ConfigStr))
+	db.DB().SetMaxOpenConns(conf.MaxOpen)
+	db.DB().SetMaxIdleConns(conf.MaxIdle)
+	db.DB().SetConnMaxLifetime(time.Minute * conf.MaxLifeTime)
 	if err != nil {
 		log.Logger().Fatal("db config error")
 		os.Exit(-1)
