@@ -24,9 +24,9 @@ func init() {
 func (mockController *MockController) mock(ctx *macaron.Context) {
 	projectId, _ := strconv.ParseInt(ctx.Params("projectId"), 10, 64)
 	url := ctx.Params("*")
-	projectAction, err := service.GetProjectActionService().GetByProjectIdAndUrl(&projectId, &url)
-	if err != nil {
-		setErrorResponse(ctx, model.SYSTEM_ERROR)
+	projectAction, ok := service.GetProjectActionService().GetByProjectIdAndUrl(&projectId, &url)
+	if !ok {
+		setErrorResponse(ctx, model.PROJECT_ACTION_NOT_FIND)
 		return
 	}
 	result, err := service.GetMockService().MockData(&projectAction.ActionId)

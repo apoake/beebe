@@ -21,6 +21,7 @@ var TEAM_NO_EXIST *ErrorCode = &ErrorCode{Code: 608, Msg: "TEAM_NO_EXIST"}
 	project error
  */
 var PROJECT_CREATE_ERROR *ErrorCode = &ErrorCode{Code: 701, Msg: "PROJECT_CREATE_ERROR"}
+var PROJECT_ACTION_NOT_FIND *ErrorCode = &ErrorCode{Code: 702, Msg: "PROJECT_ACTION_NOT_FIND"}
 
 /**
 	team error

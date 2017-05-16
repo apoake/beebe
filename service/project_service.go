@@ -25,7 +25,7 @@ type ProjectService interface{
 	AddProject(project *model.Project) error
 	UpdateProject(project *model.Project) error
 	DeleteProject(project *model.Project) error
-	GetProject(projectId *int64) (*model.Project, error)
+	GetProject(projectId *int64) (*model.Project, bool)
 	GetProjectsPage(key string, start *int64, limit *int64) (*[]model.Project, error)
 	GetProjectByUser(userIds *[]int64) (*[]model.Project, error)
 	GetJoiningProjects(userId *int64) (*[]model.Project, error)
@@ -61,10 +61,10 @@ func (projectService *ProjectServiceImpl) DeleteProject(project *model.Project) 
 	return DB().Delete(dbProject).Error
 }
 
-func (projectService *ProjectServiceImpl) GetProject(projectId int64) (*model.Project, error) {
+func (projectService *ProjectServiceImpl) GetProject(projectId int64) (*model.Project, bool) {
 	project := new(model.Project)
-	err := DB().First(project, projectId).Error
-	return project, err
+	isExit := !DB().First(project, projectId).RecordNotFound()
+	return project, isExit
 }
 
 func (projectService *ProjectServiceImpl) GetProjectsPage(key string, start *int64, limit *int64) (*[]model.Project, error) {
@@ -91,9 +91,9 @@ func (projectService *ProjectServiceImpl) GetJoiningProjects(userId *int64) (*[]
 
 
 type ProjectActionService interface {
-	Get(actionId *int64) (*model.ProjectAction, error)
+	Get(actionId *int64) (*model.ProjectAction, bool)
 	GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error)
-	GetByProjectIdAndUrl(projectId *int64, url *string) (*model.ProjectAction, error)
+	GetByProjectIdAndUrl(projectId *int64, url *string) (*model.ProjectAction, bool)
 	CreateProjectAction(projectAction *model.ProjectAction) error
 	UpdateProjectAction(projectAction *model.ProjectAction) error
 	Delete(actionId *int64) error
@@ -101,11 +101,11 @@ type ProjectActionService interface {
 
 type ProjectActionServiceImpl struct {}
 
-func (projectActionService *ProjectActionServiceImpl) Get(actionId *int64) (*model.ProjectAction, error) {
+func (projectActionService *ProjectActionServiceImpl) Get(actionId *int64) (*model.ProjectAction, bool) {
 	projectAction := new(model.ProjectAction)
 	projectAction.ActionId = *actionId
-	err := DB().First(projectAction).Error
-	return projectAction, err
+	isExist := !DB().First(projectAction).RecordNotFound()
+	return projectAction, isExist
 }
 
 func (projectActionService *ProjectActionServiceImpl) GetAllByProjectPage(projectId *int64, start *int64, limit *int64) (*[]model.ProjectAction, error) {
@@ -114,10 +114,10 @@ func (projectActionService *ProjectActionServiceImpl) GetAllByProjectPage(projec
 	return &projectActions, err
 }
 
-func (projectActionService *ProjectActionServiceImpl) GetByProjectIdAndUrl(projectId *int64, url *string) (*model.ProjectAction, error) {
+func (projectActionService *ProjectActionServiceImpl) GetByProjectIdAndUrl(projectId *int64, url *string) (*model.ProjectAction, bool) {
 	projectAction := &model.ProjectAction{}
-	err := DB().Where("project_id = ? and request_url = ?", *projectId, *url).First(projectAction).Error
-	return projectAction, err
+	isExist := !DB().Where("project_id = ? and request_url = ?", *projectId, *url).First(projectAction).RecordNotFound()
+	return projectAction, isExist
 }
 
 func (projectActionService *ProjectActionServiceImpl) CreateProjectAction(projectAction *model.ProjectAction) error {

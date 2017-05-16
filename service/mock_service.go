@@ -20,19 +20,19 @@ func GetMockService() *MockServiceImpl {
 
 
 func (mockService *MockServiceImpl) MockData(actionId *int64) (*map[string]interface{}, error) {
-	parameterAction, err := GetParamActionService().Get(actionId)
-	if err != nil {
-		return nil, err
+	parameterAction, ok := GetParamActionService().Get(actionId)
+	if !ok {
+		return nil, errors.New("not find record")
 	}
 	if parameterAction.ResponseParameter == "" {
 		return nil, errors.New("no response parameter")
 	}
 	responseArr := make([]model.ParameterVo, 5)
-	if err = json.Unmarshal([]byte(parameterAction.ResponseParameter), &responseArr); err != nil {
+	if err := json.Unmarshal([]byte(parameterAction.ResponseParameter), &responseArr); err != nil {
 		return nil, err
 	}
 	var result *map[string]interface{}
-	result, err = getResultMap(&responseArr)
+	result, err := getResultMap(&responseArr)
 	if err != nil {
 		return nil, err
 	}

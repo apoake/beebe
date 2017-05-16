@@ -27,9 +27,9 @@ func (paramController *ParamController) saveParams(parameterAction model.Paramet
 	// 判断权限
 	if parameterAction.ActionId > 0 {
 		var projectAction *model.ProjectAction
-		var err error
-		if projectAction, err = service.GetProjectActionService().Get(&parameterAction.ActionId); err != nil {
-			setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		var ok bool
+		if projectAction, ok = service.GetProjectActionService().Get(&parameterAction.ActionId); !ok {
+			setErrorResponse(ctx, model.PROJECT_ACTION_NOT_FIND)
 			return
 		}
 		if !service.GetUserService().HasProjectRight(&projectAction.ProjectId, &userId) {

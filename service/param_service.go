@@ -99,24 +99,24 @@ type ParamActionServiceImpl struct{}
 
 
 type ParamActionService interface {
-	Get(actionId *int64) (*model.ParameterAction, error)
+	Get(actionId *int64) (*model.ParameterAction, bool)
 	Save(parameterAction *model.ParameterActionVo) error
 	DeleteByActionId(actionId *int64, db *gorm.DB) error
 }
 // projectServiceImpl
-func (paramActionService *ParamActionServiceImpl) Get(actionId *int64) (*model.ParameterAction, error) {
+func (paramActionService *ParamActionServiceImpl) Get(actionId *int64) (*model.ParameterAction, bool) {
 	paramAction := &model.ParameterAction{ActionId: *actionId}
-	err := DB().Find(paramAction).Error
-	return paramAction, err
+	isExist := !DB().Find(paramAction).RecordNotFound()
+	return paramAction, isExist
 }
 
 func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.ParameterActionVo) (erro error) {
 	if parameterAction.ActionId < 1 {
 		return errors.New("params[actionId] is empty")
 	}
-	projectAction, err := GetProjectActionService().Get(&parameterAction.ActionId)
-	if err != nil {
-		return err
+	projectAction, ok := GetProjectActionService().Get(&parameterAction.ActionId)
+	if  !ok {
+		return errors.New("not find projectAction")
 	}
 	// TODO: 权限限制
 	if projectAction == nil {
@@ -132,7 +132,10 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	}
 	var dbParamAction *model.ParameterAction
 	if parameterAction.ActionId > 0 {
-		dbParamAction, erro = paramActionService.Get(&parameterAction.ActionId)
+		dbParamAction, ok = paramActionService.Get(&parameterAction.ActionId)
+		if !ok {
+			return errors.New("not find record")
+		}
 	} else {
 		dbParamAction = new(model.ParameterAction)
 	}
