@@ -42,7 +42,7 @@ type UserSearch struct {
 type UserUpdate struct {
 	Base
 	Email    	string          `json:"email" binding:"OmitEmpty;Email"`
-	ImgUrl  	string			`json:"imgUrl binding:"OmitEmpty"`
+	ImgUrl  	string			`json:"imgUrl"" binding:"OmitEmpty"`
 	Name 		string			`json:"nickName" binding:"OmitEmpty;AlphaDash`
 }
 

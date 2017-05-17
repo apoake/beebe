@@ -32,7 +32,7 @@ type UserServiceImpl struct{}
 
 func (userService *UserServiceImpl) FindUserByUserId(userId *int64) (*model.User, bool) {
 	user := new(model.User)
-	isExist := !DB().First(user, userId).RecordNotFound()
+	isExist := !DB().First(user, *userId).RecordNotFound()
 	return user, isExist
 }
 

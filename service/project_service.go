@@ -158,6 +158,7 @@ func (projectActionService *ProjectActionServiceImpl) Delete(actionId *int64) (e
 
 type WorkSpaceService interface {
 	GetProject(userId *int64) (*[]model.Project, error)
+	GetByUserIdAndProjectId(userId *int64, projectId *int64) bool
 	AddProject(workSpace *model.WorkSpace) error
 	DeleteProject(workSpace *model.WorkSpace) error
 }
@@ -168,6 +169,10 @@ func (workspaceService *WorkSpaceServiceImpl) GetProject(userId *int64) (*[]mode
 	projects := make([]model.Project, 0, 5)
 	err := DB().Select("project.id, project.name, project.introduction, project.is_public").Joins("inner join workspace on workspace.project_id = project.id").Where("workspace.user_id = ?", *userId).Find(&projects).Error
 	return &projects, err
+}
+
+func (workspaceService *WorkSpaceServiceImpl) GetByUserIdAndProjectId(userId *int64, projectId *int64) bool {
+	return DB().Where("user_id = ? and project_id = ?", *userId, *projectId).RecordNotFound();
 }
 
 func (workSpaceService *WorkSpaceServiceImpl) AddProject(workSpace *model.WorkSpace) error {

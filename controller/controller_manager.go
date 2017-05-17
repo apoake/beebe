@@ -8,12 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	RESULT_KEY string = "result_data"
-	ERROR_CODE_KEY	string = "error_code"
-	ERROR_INFO_KEY string = "error_info"
-)
-
 var m *macaron.Macaron
 
 func init() {
@@ -30,7 +24,6 @@ func Macaron() *macaron.Macaron {
 	return m
 }
 
-
 func setHandler() {
 	if config.GetConfig().Web.IsCors {
 		corsConfig := config.GetConfig().Cors
@@ -41,7 +34,6 @@ func setHandler() {
 			AllowCredentials: corsConfig.AllowCred,
 		}))
 	}
-	//m.Use(jsonResponse)
 }
 
 func sessionConfig() {
@@ -70,27 +62,3 @@ func sessionConfig() {
 		Section:        "session",
 	}))
 }
-//
-//func jsonResponse(ctx *macaron.Context) string {
-//	ctx.Next()
-//	if errCode, ok := ctx.Data[ERROR_CODE_KEY]; ok {
-//		if value, ok := errCode.(model.ErrorCode); ok {
-//			restResult := model.ConvertRestResult(&value)
-//			if value.Code == model.SUCCESS.Code {
-//				if result, ok := ctx.Data[RESULT_KEY]; ok && result != nil {
-//					restResult.SetData(result)
-//				}
-//			}
-//			if err, ok := ctx.Data[ERROR_INFO_KEY]; ok {
-//				//log.Logger().Error("error", zap.Any("err", err))
-//				fmt.Printf("%v", err)
-//			}
-//			resultError, err := json.Marshal(*restResult)
-//			if err != nil {
-//				return ""
-//			}
-//			return string(resultError)
-//		}
-//	}
-//	return ""
-//}

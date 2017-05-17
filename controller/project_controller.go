@@ -129,7 +129,12 @@ func (projectController *ProjectController) myWorkspace(ctx *macaron.Context, se
 }
 
 func (projectController *ProjectController) addWorkspaceProject(projectId ProjectID, ctx *macaron.Context, sess session.Store) {
-	if err := service.GetWorkSpaceService().AddProject(&model.WorkSpace{UserId: getCurrentUserId(sess), ProjectId: projectId.ProjectId}); err != nil {
+	userId := getCurrentUserId(sess)
+	if ok := service.GetWorkSpaceService().GetByUserIdAndProjectId(&userId, &projectId.ProjectId); !ok {
+		setErrorResponse(ctx, model.WORKSPACE_ALREADY_IN)
+		return
+	}
+	if err := service.GetWorkSpaceService().AddProject(&model.WorkSpace{UserId: userId, ProjectId: projectId.ProjectId}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
