@@ -31,12 +31,12 @@ func init() {
 	})
 	Macaron().Group("/team", func() {
 		Macaron().Post("/create", binding.Bind(TeamAdd{}), userController.createTeam)
-		Macaron().Post("/update", binding.Bind(model.Team{}), userController.updateTeam)
-		Macaron().Post("/info", binding.Bind(model.Team{}), userController.teamInfo)
+		Macaron().Post("/update", binding.Bind(TeamUpdate{}), userController.updateTeam)
+		Macaron().Post("/info", binding.Bind(Id{}), userController.teamInfo)
 		Macaron().Post("/mine", userController.myTeam)
 		Macaron().Post("/join", userController.myJoinTeam)
-		Macaron().Post("/adduser", binding.Bind(model.TeamUser{}), userController.addTeamUser)
-		Macaron().Post("/removeuser", binding.Bind(model.TeamUser{}), userController.removeTeamUser)
+		Macaron().Post("/adduser", binding.Bind(TeamUserDto{}), userController.addTeamUser)
+		Macaron().Post("/removeuser", binding.Bind(TeamUserDto{}), userController.removeTeamUser)
 	}, needLogin)
 }
 
@@ -79,6 +79,9 @@ func (userController *UserController) login(userLogin UserLogin, ctx *macaron.Co
 	setSuccessResponse(ctx, model.User{Name: user.Name, ID: user.ID, Email: user.Email, Account: user.Account})
 }
 
+/**
+	账户搜索
+ */
 func (userController *UserController) search(userSearch UserSearch, ctx *macaron.Context) {
 	var limit int64 = 5
 	users, err := service.GetUserService().SearchUserByAccount(&userSearch.Account, &limit)
@@ -89,6 +92,9 @@ func (userController *UserController) search(userSearch UserSearch, ctx *macaron
 	setSuccessResponse(ctx, users)
 }
 
+/**
+	用户更新
+ */
 func (userController *UserController) update(userUpdate UserUpdate, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
 	user := &model.User{Name: userUpdate.Name, ImgUrl: userUpdate.ImgUrl, ID: userId, Email: userUpdate.Email}
@@ -99,6 +105,9 @@ func (userController *UserController) update(userUpdate UserUpdate, ctx *macaron
 	setSuccessResponse(ctx, nil)
 }
 
+/**
+	修改密码
+ */
 func (userController *UserController) changePassword(userPassword *UserPassword, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
 	user, _ := service.GetUserService().FindUserByUserId(&userId)
@@ -113,6 +122,9 @@ func (userController *UserController) changePassword(userPassword *UserPassword,
 	setSuccessResponse(ctx, nil)
 }
 
+/**
+	用户登出
+ */
 func (userController *UserController) logout(ctx *macaron.Context, sess session.Store) {
 	if err := sess.Delete(model.USER_SESSION_KEY); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
@@ -121,6 +133,9 @@ func (userController *UserController) logout(ctx *macaron.Context, sess session.
 	setErrorResponse(ctx, model.SUCCESS)
 }
 
+/**
+	创建团队
+ */
 func (userController *UserController) createTeam(teamAdd TeamAdd, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
 	err := service.GetTeamService().Create(&model.Team{Name: teamAdd.Name, UserId: userId, Remark: teamAdd.Remark, LogoUrl: teamAdd.LogoUrl})
@@ -131,12 +146,8 @@ func (userController *UserController) createTeam(teamAdd TeamAdd, ctx *macaron.C
 	setSuccessResponse(ctx, nil)
 }
 
-func (userController *UserController) updateTeam(team model.Team, ctx *macaron.Context, sess session.Store) {
-	if team.Name == "" || team.ID == 0 {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	teamDB, ok := service.GetTeamService().Get(&team.ID)
+func (userController *UserController) updateTeam(teamUpdate TeamUpdate, ctx *macaron.Context, sess session.Store) {
+	teamDB, ok := service.GetTeamService().Get(&teamUpdate.ID)
 	if !ok {
 		setErrorResponse(ctx, model.TEAM_NO_EXIST)
 		return
@@ -145,23 +156,19 @@ func (userController *UserController) updateTeam(team model.Team, ctx *macaron.C
 		setErrorResponse(ctx, model.TEAM_NOT_SELF)
 		return
 	}
-	if err := service.GetTeamService().Update(&team); err != nil {
+	if err := service.GetTeamService().Update(&model.Team{ID: teamUpdate.ID, Name: teamUpdate.Name, Remark:teamUpdate.Remark, LogoUrl: teamUpdate.LogoUrl}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
 	setSuccessResponse(ctx, nil)
 }
 
-func (userController *UserController) teamInfo(team model.Team, ctx *macaron.Context, sess session.Store) {
-	if team.ID == 0 {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: team.ID}) {
+func (userController *UserController) teamInfo(id Id, ctx *macaron.Context, sess session.Store) {
+	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: id.ID}) {
 		setErrorResponse(ctx, model.USER_NO_RIGHT)
 		return
 	}
-	result, err := service.GetTeamService().Info(&team)
+	result, err := service.GetTeamService().Info(&model.Team{ID: id.ID})
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
@@ -190,19 +197,15 @@ func (userController *UserController) myJoinTeam(ctx *macaron.Context, sess sess
 	setSuccessResponse(ctx, teams)
 }
 
-func (userController *UserController) addTeamUser(teamUser model.TeamUser, ctx *macaron.Context, sess session.Store) {
-	if teamUser.TeamId == 0 || teamUser.UserId == 0 {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
+func (userController *UserController) addTeamUser(teamUserDto TeamUserDto, ctx *macaron.Context, sess session.Store) {
+	if teamUserDto.RoleId == 0 {
+		teamUserDto.RoleId = model.ROLE_MEMBER.ID
 	}
-	if teamUser.RoleId == 0 {
-		teamUser.RoleId = model.ROLE_MEMBER.ID
-	}
-	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: teamUser.TeamId}) {
+	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: teamUserDto.TeamId}) {
 		setErrorResponse(ctx, model.USER_NO_RIGHT)
 		return
 	}
-	err := service.GetTeamService().AddTeamUser(&model.TeamUser{TeamId: teamUser.TeamId, RoleId: teamUser.RoleId, UserId: teamUser.UserId})
+	err := service.GetTeamService().AddTeamUser(&model.TeamUser{TeamId: teamUserDto.TeamId, RoleId: teamUserDto.RoleId, UserId: teamUserDto.UserId})
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
@@ -210,16 +213,16 @@ func (userController *UserController) addTeamUser(teamUser model.TeamUser, ctx *
 	setSuccessResponse(ctx, nil)
 }
 
-func (userController *UserController) removeTeamUser(teamUser model.TeamUser, ctx *macaron.Context, sess session.Store) {
-	if teamUser.TeamId == 0 {
+func (userController *UserController) removeTeamUser(teamUserDto TeamUserDto, ctx *macaron.Context, sess session.Store) {
+	if teamUserDto.TeamId == 0 {
 		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}
-	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: teamUser.TeamId}) {
+	if !service.GetTeamService().HasTeamRight(&model.TeamUser{UserId: getCurrentUserId(sess), TeamId: teamUserDto.TeamId}) {
 		setErrorResponse(ctx, model.USER_NO_RIGHT)
 		return
 	}
-	err := service.GetTeamService().RemoveTeamUser(&model.TeamUser{TeamId: teamUser.TeamId, UserId: teamUser.UserId})
+	err := service.GetTeamService().RemoveTeamUser(&model.TeamUser{TeamId: teamUserDto.TeamId, UserId: teamUserDto.UserId})
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return

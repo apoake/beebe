@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"mime/multipart"
 	"beebe/config"
 	"gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
@@ -15,12 +14,6 @@ import (
 var BusMap map[int64]string
 
 type CommonController struct {}
-
-type UploadForm struct {
-	Bus 			int64					`form:"bus"`
-	Format        	string                	`form:"format"`
-	ImageUpload 	*multipart.FileHeader 	`form:"image"`
-}
 
 type UploadResponse struct {
 	Url 			string			`json:"url"`

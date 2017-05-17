@@ -14,16 +14,16 @@ func init() {
 	projectController := new(ProjectController)
 	Macaron().Get("/search", projectController.search)
 	Macaron().Group("/project", func() {
-		Macaron().Post("/create", binding.Bind(model.Project{}), projectController.createProject)
-		Macaron().Post("/update", binding.Bind(model.Project{}), projectController.updateProject)
-		Macaron().Post("/delete", binding.Bind(model.Project{}), projectController.deleteProject)
+		Macaron().Post("/create", binding.Bind(ProjectCreate{}), projectController.createProject)
+		Macaron().Post("/update", binding.Bind(ProjectUpdate{}), projectController.updateProject)
+		Macaron().Post("/delete", binding.Bind(Id{}), projectController.deleteProject)
 		Macaron().Post("/mine", projectController.myProjects)
 		Macaron().Post("/join", projectController.myJoiningProjects)
 	}, needLogin)
 	Macaron().Group("/space", func() {
 		Macaron().Post("/", projectController.myWorkspace)
-		Macaron().Post("/addproject", binding.Bind(model.WorkSpace{}), projectController.addWorkspaceProject)
-		Macaron().Post("/deleteproject", binding.Bind(model.WorkSpace{}), projectController.deleteWorkspaceProject)
+		Macaron().Post("/addproject", binding.Bind(ProjectID{}), projectController.addWorkspaceProject)
+		Macaron().Post("/deleteproject", binding.Bind(ProjectID{}), projectController.deleteWorkspaceProject)
 	}, needLogin)
 	Macaron().Group("/action", func() {
 		Macaron().Post("/create", binding.Bind(model.Project{}), projectController.createProjectAction)
@@ -56,12 +56,8 @@ func (projectController *ProjectController) search(ctx *macaron.Context) {
 /**
 	create project
  */
-func (projectController *ProjectController) createProject(project model.Project, ctx *macaron.Context, sess session.Store) {
-	if project.Name == "" || project.IsPublic == 0 {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	projectdb := &model.Project{IsPublic: project.IsPublic, Introduction: project.Introduction, Name: project.Name, UserId: getCurrentUserId(sess)}
+func (projectController *ProjectController) createProject(projectCreate ProjectCreate, ctx *macaron.Context, sess session.Store) {
+	projectdb := &model.Project{IsPublic: projectCreate.IsPublic, Introduction: projectCreate.Introduction, Name: projectCreate.Name, ImgUrl: projectCreate.ImgUrl, UserId: getCurrentUserId(sess)}
 	err := service.GetProjectService().AddProject(projectdb)
 	if err != nil {
 		setFailResponse(ctx, model.PROJECT_CREATE_ERROR, err)
@@ -73,13 +69,9 @@ func (projectController *ProjectController) createProject(project model.Project,
 /**
 	update project
  */
-func (projectController *ProjectController) updateProject(project model.Project, ctx *macaron.Context, sess session.Store) {
-	if project.ID == 0 || project.Name == "" || project.IsPublic == 0 {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	err := service.GetProjectService().UpdateProject(&project)
-	if err != nil {
+func (projectController *ProjectController) updateProject(projectUpdate ProjectUpdate, ctx *macaron.Context, sess session.Store) {
+	if err := service.GetProjectService().UpdateProject(&model.Project{ID: projectUpdate.ID, ImgUrl:projectUpdate.ImgUrl, Name:projectUpdate.Name,
+		IsPublic: projectUpdate.IsPublic, Introduction: projectUpdate.Introduction}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
@@ -89,14 +81,8 @@ func (projectController *ProjectController) updateProject(project model.Project,
 /**
 	delete project
  */
-func (projectController *ProjectController) deleteProject(project model.Project, ctx *macaron.Context, sess session.Store) {
-	if project.ID == 0 {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	project.UserId = getCurrentUserId(sess)
-	err := service.GetProjectService().DeleteProject(&project)
-	if err != nil {
+func (projectController *ProjectController) deleteProject(id Id, ctx *macaron.Context, sess session.Store) {
+	if err := service.GetProjectService().DeleteProject(&model.Project{ID: id.ID, UserId: getCurrentUserId(sess)}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
@@ -121,57 +107,41 @@ func (projectController *ProjectController) myProjects(ctx *macaron.Context, ses
 	myJoiningProjects
  */
 func (projectController *ProjectController) myJoiningProjects(ctx *macaron.Context, sess session.Store) {
-	if userId, ok := getUserId(ctx, sess); ok {
-		projects, err := service.GetProjectService().GetJoiningProjects(&userId)
-		if err != nil {
-			setFailResponse(ctx, model.SYSTEM_ERROR, err)
-		}
-		setSuccessResponse(ctx, projects)
+	userId := getCurrentUserId(sess)
+	projects, err := service.GetProjectService().GetJoiningProjects(&userId)
+	if err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 	}
+	setSuccessResponse(ctx, projects)
 }
 
 /**
 	myWorkspace
  */
 func (projectController *ProjectController) myWorkspace(ctx *macaron.Context, sess session.Store) {
-	if userId, ok := getUserId(ctx, sess); ok {
-		projects, err := service.GetWorkSpaceService().GetProject(&userId)
-		if err != nil {
-			setFailResponse(ctx, model.SYSTEM_ERROR, err)
-			return
-		}
-		setSuccessResponse(ctx, projects)
+	userId := getCurrentUserId(sess)
+	projects, err := service.GetWorkSpaceService().GetProject(&userId)
+	if err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
 	}
+	setSuccessResponse(ctx, projects)
 }
 
-func (projectController *ProjectController) addWorkspaceProject(workspace model.WorkSpace, ctx *macaron.Context, sess session.Store) {
-	if userId, ok := getUserId(ctx, sess); ok {
-		if workspace.ProjectId == 0 {
-			setErrorResponse(ctx, model.PARAMETER_INVALID)
-			return
-		}
-		err := service.GetWorkSpaceService().AddProject(&model.WorkSpace{UserId: userId, ProjectId: workspace.ProjectId})
-		if err != nil {
-			setFailResponse(ctx, model.SYSTEM_ERROR, err)
-			return
-		}
-		setSuccessResponse(ctx, nil)
+func (projectController *ProjectController) addWorkspaceProject(projectId ProjectID, ctx *macaron.Context, sess session.Store) {
+	if err := service.GetWorkSpaceService().AddProject(&model.WorkSpace{UserId: getCurrentUserId(sess), ProjectId: projectId.ProjectId}); err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
 	}
+	setSuccessResponse(ctx, nil)
 }
 
-func (projectController *ProjectController) deleteWorkspaceProject(workspace model.WorkSpace, ctx *macaron.Context, sess session.Store) {
-	if userId, ok := getUserId(ctx, sess); ok {
-		if workspace.ProjectId == 0 {
-			setErrorResponse(ctx, model.PARAMETER_INVALID)
-			return
-		}
-		err := service.GetWorkSpaceService().DeleteProject(&model.WorkSpace{UserId: userId, ProjectId: workspace.ProjectId})
-		if err != nil {
-			setFailResponse(ctx, model.SYSTEM_ERROR, err)
-			return
-		}
-		setSuccessResponse(ctx, nil)
+func (projectController *ProjectController) deleteWorkspaceProject(projectId ProjectID, ctx *macaron.Context, sess session.Store) {
+	if err := service.GetWorkSpaceService().DeleteProject(&model.WorkSpace{UserId: getCurrentUserId(sess), ProjectId: projectId.ProjectId}); err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
 	}
+	setSuccessResponse(ctx, nil)
 }
 
 /**
