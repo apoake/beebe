@@ -6,26 +6,21 @@ import (
 	"beebe/service"
 	"github.com/go-macaron/session"
 	"github.com/go-macaron/binding"
-	"encoding/json"
 	"beebe/utils"
 	"errors"
 )
 
-var NoLoginResult []byte
-var AlreadyLoginResult []byte
 
 type UserController struct{}
 
 func init() {
-	NoLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_NO_LOGIN))
-	AlreadyLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_ALREADY_LOGIN))
 	userController := new(UserController)
 	Macaron().Group("/user", func() {
 		Macaron().Post("/", needLogin, userController.user)
 		Macaron().Post("/register", noNeedLogin, binding.Bind(UserRegister{}), userController.register)
 		Macaron().Post("/login", noNeedLogin, binding.Bind(UserLogin{}), userController.login)
 		Macaron().Post("/search", needLogin, binding.Bind(UserSearch{}), userController.search)
-		Macaron().Post("/update", needLogin, binding.Bind(UserUpdate{}), userController.update)
+		Macaron().Put("/update", needLogin, binding.Bind(UserUpdate{}), userController.update)
 		Macaron().Post("/changepassword", needLogin, binding.Bind(UserPassword{}), userController.changePassword)
 		Macaron().Post("/logout", needLogin, userController.logout)
 	})
