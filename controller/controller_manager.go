@@ -33,6 +33,7 @@ func Macaron() *macaron.Macaron {
 	return m
 }
 
+
 func setHandler() {
 	if config.GetConfig().Web.IsCors {
 		corsConfig := config.GetConfig().Cors

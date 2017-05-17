@@ -73,13 +73,13 @@ type TeamUserDto struct {
 	Base
 	TeamId			int64		`json:"teamId" binding:"Required"`
 	UserId 			int64		`json:"userId" binding:"Required"`
-	RoleId			int64		`json:"roleId" binding:"OmitEmpty;Size(1)"`
+	RoleId			int64		`json:"roleId" binding:"OmitEmpty;Range(1,3)"`
 }
 
 // utilityController
 type UploadForm struct {
 	Base
-	Bus 			int64					`form:"bus" binding:"Required;Size(1)"`
+	Bus 			int64					`form:"bus" binding:"Required;Range(0,3)"`
 	Format        	string                	`form:"format" binding:"Required;AlphaDash"`
 	ImageUpload 	*multipart.FileHeader 	`form:"image" binding:"Required"`
 }
@@ -90,7 +90,7 @@ type ProjectCreate struct {
 	Name         string        	`json:"name" binding:"Required;AlphaDash"`
 	ImgUrl		 string        	`json:"imgUrl"`
 	Introduction string         `json:"introduction" binding:"OmitEmpty;AlphaDash"`
-	IsPublic     int            `json:"isPublic" binding:"Required;Size(1)"`
+	IsPublic     int            `json:"isPublic" binding:"Required;Range(1,2)"`
 }
 
 type ProjectUpdate struct {
@@ -101,4 +101,26 @@ type ProjectUpdate struct {
 type ProjectID struct {
 	Base
 	ProjectId 		int64 		`json:"projectId" binding:"Required"`
+}
+
+type ActionID struct {
+	Base
+	ActionId 		int64		`json:"actionId" binding:"Required"`
+}
+
+type ProjectActionCreate struct {
+	Base
+	ActionName			string		`json:"actionName" binding:"Required;AlphaDash"`
+	ActionDesc			string		`json:"actionDesc" binding:"OmitEmpty;AlphaDash"`
+	ProjectId			int64		`json:"projectId" binding:"Required"`
+	RequestType 		string		`json:"requestType" binding:"Required"`
+	RequestUrl			string		`json:"requestUrl" binding:"Required"`
+}
+
+type ProjectActionUpdate struct {
+	ActionID
+	ActionName			string		`json:"actionName" binding:"Required;AlphaDash"`
+	ActionDesc			string		`json:"actionDesc" binding:"OmitEmpty;AlphaDash"`
+	RequestType 		string		`json:"requestType" binding:"Required"`
+	RequestUrl			string		`json:"requestUrl" binding:"Required"`
 }

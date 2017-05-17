@@ -26,9 +26,9 @@ func init() {
 		Macaron().Post("/deleteproject", binding.Bind(ProjectID{}), projectController.deleteWorkspaceProject)
 	}, needLogin)
 	Macaron().Group("/action", func() {
-		Macaron().Post("/create", binding.Bind(model.Project{}), projectController.createProjectAction)
-		Macaron().Post("/update", binding.Bind(model.Project{}), projectController.updateProjectAction)
-		Macaron().Post("/delete", binding.Bind(model.Project{}), projectController.deleteProjectAction)
+		Macaron().Post("/create", binding.Bind(ProjectActionCreate{}), projectController.createProjectAction)
+		Macaron().Post("/update", binding.Bind(ProjectActionUpdate{}), projectController.updateProjectAction)
+		Macaron().Post("/delete", binding.Bind(ActionID{}), projectController.deleteProjectAction)
 	}, needLogin)
 }
 
@@ -147,50 +147,36 @@ func (projectController *ProjectController) deleteWorkspaceProject(projectId Pro
 /**
 	project action
  */
-func (projectController *ProjectController) createProjectAction(projectAction model.ProjectAction, ctx *macaron.Context, sess session.Store) {
-	if projectAction.ProjectId == 0 || projectAction.ActionName == "" ||
-		projectAction.RequestType == "" || projectAction.RequestUrl == "" {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
-	err := service.GetProjectActionService().CreateProjectAction(&projectAction)
-	if err != nil {
+func (projectController *ProjectController) createProjectAction(projectActionCreate ProjectActionCreate, ctx *macaron.Context, sess session.Store) {
+	if err := service.GetProjectActionService().CreateProjectAction(&model.ProjectAction{ProjectId: projectActionCreate.ProjectId, RequestUrl: projectActionCreate.RequestUrl,
+		RequestType: projectActionCreate.RequestType, ActionName: projectActionCreate.ActionName, ActionDesc: projectActionCreate.ActionDesc}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
 	setSuccessResponse(ctx, nil)
 }
 
-func (projectController *ProjectController) updateProjectAction(projectAction model.ProjectAction, ctx *macaron.Context, sess session.Store) {
-	if projectAction.ProjectId == 0 || projectAction.ActionName == "" ||
-		projectAction.RequestType == "" || projectAction.RequestUrl == "" {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
+func (projectController *ProjectController) updateProjectAction(projectActionUpdate ProjectActionUpdate, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
-	if !service.GetUserService().HasProjectRight(&projectAction.ProjectId, &userId) {
+	if !service.GetUserService().HasProjectRightByActionId(&projectActionUpdate.ActionId, &userId) {
 		setErrorResponse(ctx, model.USER_NO_RIGHT)
 		return
 	}
-	err := service.GetProjectActionService().UpdateProjectAction(&projectAction)
-	if err != nil {
+	if err := service.GetProjectActionService().UpdateProjectAction(&model.ProjectAction{ActionId: projectActionUpdate.ActionId, ActionName: projectActionUpdate.ActionName,
+		ActionDesc: projectActionUpdate.ActionDesc, RequestType: projectActionUpdate.RequestType, RequestUrl: projectActionUpdate.RequestUrl}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
 	setSuccessResponse(ctx, nil)
 }
 
-func (projectController *ProjectController) deleteProjectAction(projectAction model.ProjectAction, ctx *macaron.Context, sess session.Store) {
-	if projectAction.ActionId == 0 {
-		setErrorResponse(ctx, model.PARAMETER_INVALID)
-		return
-	}
+func (projectController *ProjectController) deleteProjectAction(actionId ActionID, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
-	if !service.GetUserService().HasProjectRight(&projectAction.ProjectId, &userId) {
+	if !service.GetUserService().HasProjectRightByActionId(&actionId.ActionId, &userId) {
 		setErrorResponse(ctx, model.USER_NO_RIGHT)
 		return
 	}
-	if err := service.GetProjectActionService().Delete(&projectAction.ActionId); err != nil {
+	if err := service.GetProjectActionService().Delete(&actionId.ActionId); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}

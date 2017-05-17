@@ -25,6 +25,7 @@ type UserService interface {
 	RegisterUser(registerUser *model.User) error
 	SearchUserByAccount(account *string, limit *int64) (*[]model.User, error)
 	HasProjectRight(projectId *int64, userId *int64) bool
+	HasProjectRightByActionId(actionId *int64, userId *int64) bool
 }
 
 type UserServiceImpl struct{}
@@ -68,6 +69,13 @@ func (userService *UserServiceImpl) ChangePassword(user *model.User) error {
 func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *int64) bool {
 	projectUserMapping := &model.ProjectUserMapping{}
 	return !DB().Where("user_id = ? and project_id = ?", *userId, *projectId).First(projectUserMapping).RecordNotFound()
+}
+
+func (userService *UserServiceImpl) HasProjectRightByActionId(actionId *int64, userId *int64) bool {
+	projectUserMapping := &model.ProjectUserMapping{}
+	return !DB().Select("project_user_mapping.id").
+			Joins("inner join project_action on project_action.project_id = project_user_mapping.project_id").
+			Where("project_action.action_id = ? and project_action.user_id = ?", *actionId, *userId).First(projectUserMapping).RecordNotFound()
 }
 
 type TeamService interface {

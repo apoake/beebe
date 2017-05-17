@@ -33,11 +33,11 @@ func (ProjectUserMapping) TableName() string {
 type ProjectAction struct {
 	Model
 	ActionId 			int64		`gorm:"primary_key" json:"actionId"`
-	ActionName			string		`grom:"column:action_name"`
-	ActionDesc			string		`grom:"column:action_desc"`
-	ProjectId			int64		`grom:"column:project_id"`
-	RequestType 		string		`grom:"column:request_type"`
-	RequestUrl			string		`grom:"column:request_url"`
+	ActionName			string		`grom:"column:action_name" json:"actionName"`
+	ActionDesc			string		`grom:"column:action_desc" json:"actionDesc"`
+	ProjectId			int64		`grom:"column:project_id" json:"projectId"`
+	RequestType 		string		`grom:"column:request_type" json:"requestType"`
+	RequestUrl			string		`grom:"column:request_url" json:"requestUrl"`
 }
 
 func (ProjectAction) TableName() string {
