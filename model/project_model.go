@@ -21,7 +21,7 @@ type ProjectUserMapping struct {
 	Model
 	ID 			int64		 `gorm:"primary_key" json:"id"`
 	ProjectId   int64        `grom:"column:project_id" json:"projectId"`
-	TeamId		int16		 `grom:"column:team_id" json:"teamId"`
+	TeamId		int64		 `grom:"column:team_id" json:"teamId"`
 	UserId      int64        `grom:"column:user_id" json:"userId"`
 	AccessLevel int64        `grom:"column:access_level" json:"accessLevel"`
 }

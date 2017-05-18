@@ -52,6 +52,11 @@ type UserPassword struct {
 	Password 	string          `json:"password" binding:"Required;AlphaDash"`
 }
 
+type TeamSearch struct {
+	Base
+	search 		string 			`json:"search" binding:"Required"`
+}
+
 type TeamAdd struct {
 	Base
 	Name 		string		`json:"name" binding:"Required"`
@@ -62,6 +67,11 @@ type TeamAdd struct {
 type Id struct {
 	Base
 	ID			int64		`json:"id" binding:"Required"`
+}
+
+type TeamId struct {
+	Base
+	TeamId 		int64		`json:"teamId" binding:"Required"`
 }
 
 type TeamUpdate struct {
@@ -123,4 +133,13 @@ type ProjectActionUpdate struct {
 	ActionDesc			string		`json:"actionDesc" binding:"OmitEmpty;AlphaDash"`
 	RequestType 		string		`json:"requestType" binding:"Required"`
 	RequestUrl			string		`json:"requestUrl" binding:"Required"`
+}
+
+type ProjectTeamAdd struct {
+	ProjectID
+	TeamId
+}
+
+type ProjectTeamRemove struct {
+	ProjectTeamAdd
 }

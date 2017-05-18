@@ -30,6 +30,7 @@ var WORKSPACE_ALREADY_IN *ErrorCode = &ErrorCode{Code: 703, Msg: "WORKSPACE_ALRE
 	team error
  */
 var TEAM_NOT_SELF *ErrorCode = &ErrorCode{Code: 801, Msg: "TEAM_NOT_SELF"}
+var TEAM_NOT_EXIST *ErrorCode = &ErrorCode{Code: 802, Msg: "TEAM_NOT_EXIST"}
 
 
 type ErrorCode struct {

@@ -19,6 +19,7 @@ func init() {
 		Macaron().Post("/delete", binding.Bind(Id{}), projectController.deleteProject)
 		Macaron().Post("/mine", projectController.myProjects)
 		Macaron().Post("/join", projectController.myJoiningProjects)
+		Macaron().Post("/team", binding.Bind(ProjectID{}), projectController.projectTeam)
 	}, needLogin)
 	Macaron().Group("/space", func() {
 		Macaron().Post("/", projectController.myWorkspace)
@@ -70,6 +71,11 @@ func (projectController *ProjectController) createProject(projectCreate ProjectC
 	update project
  */
 func (projectController *ProjectController) updateProject(projectUpdate ProjectUpdate, ctx *macaron.Context, sess session.Store) {
+	userId := getCurrentUserId(sess)
+	if !service.GetUserService().HasProjectOperateRight(&projectUpdate.ID, &userId) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
 	if err := service.GetProjectService().UpdateProject(&model.Project{ID: projectUpdate.ID, ImgUrl:projectUpdate.ImgUrl, Name:projectUpdate.Name,
 		IsPublic: projectUpdate.IsPublic, Introduction: projectUpdate.Introduction}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
@@ -81,8 +87,13 @@ func (projectController *ProjectController) updateProject(projectUpdate ProjectU
 /**
 	delete project
  */
-func (projectController *ProjectController) deleteProject(id Id, ctx *macaron.Context, sess session.Store) {
-	if err := service.GetProjectService().DeleteProject(&model.Project{ID: id.ID, UserId: getCurrentUserId(sess)}); err != nil {
+func (projectController *ProjectController) deleteProject(id ProjectID, ctx *macaron.Context, sess session.Store) {
+	userId := getCurrentUserId(sess)
+	if !service.GetUserService().HasProjectOperateRight(&id.ProjectId, &userId) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
+	if err := service.GetProjectService().DeleteProject(&model.Project{ID: id.ProjectId, UserId: userId}); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
@@ -140,8 +151,63 @@ func (projectController *ProjectController) myJoiningProjects(ctx *macaron.Conte
 	projects, err := service.GetProjectService().GetJoiningProjects(&userId)
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
 	}
 	setSuccessResponse(ctx, convertProjectToWspace(projects, &userId))
+}
+
+/**
+	项目中的团队
+ */
+func (projectController *ProjectController) projectTeam(id ProjectID, ctx *macaron.Context, sess session.Store){
+	userId := getCurrentUserId(sess)
+	if !service.GetUserService().HasProjectSeeRight(&id.ProjectId, &userId) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
+	teams, err := service.GetTeamService().GetTeamByProjectId(&id.ProjectId)
+	if err != nil {
+		setErrorResponse(ctx, model.SYSTEM_ERROR)
+		return
+	}
+	setSuccessResponse(ctx, teams)
+}
+
+/**
+	项目中添加团队
+ */
+func (projectController *ProjectController) addProjectTeam(projectTeamAdd ProjectTeamAdd, ctx *macaron.Context, sess session.Store) {
+	userId := getCurrentUserId(sess)
+	if !service.GetUserService().HasProjectOperateRight(&projectTeamAdd.ProjectId, &userId) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
+	if _, ok := service.GetTeamService().Get(&projectTeamAdd.TeamId.TeamId); !ok {
+		setErrorResponse(ctx, model.TEAM_NOT_EXIST)
+		return
+	}
+	if err := service.GetProjectService().AddTeam(&projectTeamAdd.ProjectId, &userId); err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
+	}
+	setSuccessResponse(ctx, nil)
+}
+
+func (projectController *ProjectController) removeProjectTeam(projectTeamRemove ProjectTeamRemove, ctx *macaron.Context, sess session.Store) {
+	userId := getCurrentUserId(sess)
+	if !service.GetUserService().HasProjectOperateRight(&projectTeamRemove.ProjectId, &userId) {
+		setErrorResponse(ctx, model.USER_NO_RIGHT)
+		return
+	}
+	if _, ok := service.GetTeamService().Get(&projectTeamRemove.TeamId.TeamId); !ok {
+		setErrorResponse(ctx, model.TEAM_NOT_EXIST)
+		return
+	}
+	if err := service.GetProjectService().RemoveTeam(&projectTeamRemove.ProjectId, &userId); err != nil {
+		setFailResponse(ctx, model.SYSTEM_ERROR, err)
+		return
+	}
+	setSuccessResponse(ctx, nil)
 }
 
 /**
@@ -192,7 +258,7 @@ func (projectController *ProjectController) createProjectAction(projectActionCre
 
 func (projectController *ProjectController) updateProjectAction(projectActionUpdate ProjectActionUpdate, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
-	if !service.GetUserService().HasProjectRightByActionId(&projectActionUpdate.ActionId, &userId) {
+	if !service.GetUserService().HasProjectSeeRightByActionId(&projectActionUpdate.ActionId, &userId) {
 		setErrorResponse(ctx, model.USER_NO_RIGHT)
 		return
 	}
@@ -206,11 +272,11 @@ func (projectController *ProjectController) updateProjectAction(projectActionUpd
 
 func (projectController *ProjectController) deleteProjectAction(actionId ActionID, ctx *macaron.Context, sess session.Store) {
 	userId := getCurrentUserId(sess)
-	if !service.GetUserService().HasProjectRightByActionId(&actionId.ActionId, &userId) {
+	if !service.GetUserService().HasProjectSeeRightByActionId(&actionId.ActionId, &userId) {
 		setErrorResponse(ctx, model.USER_NO_RIGHT)
 		return
 	}
-	if err := service.GetProjectActionService().Delete(&actionId.ActionId); err != nil {
+	if err := service.GetProjectActionService().Delete(&actionId.ActionId, nil); err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
