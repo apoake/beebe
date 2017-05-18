@@ -33,13 +33,21 @@ type ProjectService interface{
 
 type ProjectServiceImpl struct{}
 
-func (projectService *ProjectServiceImpl) AddProject(project *model.Project) error {
+func (projectService *ProjectServiceImpl) AddProject(project *model.Project) (err error) {
 	tx := DB().Begin()
-	if err := tx.Create(project).Error; err != nil {
-		tx.Rollback()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		}
+	}()
+	if err = tx.Create(project).Error; err != nil {
 		return err
 	}
-	return tx.Commit().Error
+	if err = tx.Create(&model.ProjectUserMapping{ProjectId: project.ID, UserId: project.UserId, AccessLevel: model.ROLE_MASTER.ID}).Error; err != nil {
+		return err
+	}
+	tx.Commit()
+	return nil
 }
 
 func (projectService *ProjectServiceImpl) UpdateProject(project *model.Project) error {
@@ -85,7 +93,9 @@ func (projectService *ProjectServiceImpl) GetProjectByUser(userIds *[]int64) (*[
 
 func (projectService *ProjectServiceImpl) GetJoiningProjects(userId *int64) (*[]model.Project, error) {
 	projects := make([]model.Project, 0, 5)
-	err := DB().Select("project.id, project.name, project.introduction").Joins("inner join team_user on team_user.project_id = project.id").Where("team_user.user_id = ?", userId).Find(projects).Error
+	err := DB().Select("project.id, project.name, project.introduction").
+		Joins("inner join project_user_mapping on project_user_mapping.project_id = project.id").
+		Where("project_user_mapping.user_id = ? and project_user_mapping.team_id != 0", userId).Find(&projects).Error
 	return &projects, err
 }
 
@@ -159,6 +169,7 @@ func (projectActionService *ProjectActionServiceImpl) Delete(actionId *int64) (e
 type WorkSpaceService interface {
 	GetProject(userId *int64) (*[]model.Project, error)
 	GetByUserIdAndProjectId(userId *int64, projectId *int64) bool
+	Get(userId *int64) (*[]model.WorkSpace, bool)
 	AddProject(workSpace *model.WorkSpace) error
 	DeleteProject(workSpace *model.WorkSpace) error
 }
@@ -167,12 +178,20 @@ type WorkSpaceServiceImpl struct {}
 
 func (workspaceService *WorkSpaceServiceImpl) GetProject(userId *int64) (*[]model.Project, error) {
 	projects := make([]model.Project, 0, 5)
-	err := DB().Select("project.id, project.name, project.introduction, project.is_public").Joins("inner join workspace on workspace.project_id = project.id").Where("workspace.user_id = ?", *userId).Find(&projects).Error
+	err := DB().Select("project.id, project.name, project.img_url, project.introduction, project.is_public").
+		Joins("inner join workspace on workspace.project_id = project.id").
+		Where("workspace.user_id = ?", *userId).Find(&projects).Error
 	return &projects, err
 }
 
 func (workspaceService *WorkSpaceServiceImpl) GetByUserIdAndProjectId(userId *int64, projectId *int64) bool {
 	return DB().Where("user_id = ? and project_id = ?", *userId, *projectId).RecordNotFound();
+}
+
+func (workspaceService *WorkSpaceServiceImpl) Get(userId *int64) (*[]model.WorkSpace, bool) {
+	spaces := make([]model.WorkSpace, 0, 5)
+	isExist := !db.Where("user_id = ?", *userId).Find(&spaces).RecordNotFound()
+	return &spaces, isExist
 }
 
 func (workSpaceService *WorkSpaceServiceImpl) AddProject(workSpace *model.WorkSpace) error {

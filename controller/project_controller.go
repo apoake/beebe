@@ -89,6 +89,35 @@ func (projectController *ProjectController) deleteProject(id Id, ctx *macaron.Co
 	setSuccessResponse(ctx, nil)
 }
 
+
+type Wspace struct {
+	model.Project
+	InWspace 		bool		`json:"isWspace"`
+}
+
+func convertProjectToWspace(projects *[]model.Project, userId *int64) *[]Wspace {
+	length := len(*projects)
+	resultSpace := make([]Wspace, length, length)
+	if length == 0 {
+		return &resultSpace
+	}
+	spaces, isExist := service.GetWorkSpaceService().Get(userId)
+	isLoop := isExist && len(*spaces) == 0
+	for _, val := range *projects {
+		isIn := false
+		if isLoop {
+			for _, w := range *spaces {
+				if w.ProjectId == val.ID {
+					isIn = true
+					break
+				}
+			}
+		}
+		resultSpace = append(resultSpace, Wspace{InWspace: isIn, Project: val})
+	}
+	return &resultSpace
+}
+
 /**
 	myProjects
  */
@@ -100,7 +129,7 @@ func (projectController *ProjectController) myProjects(ctx *macaron.Context, ses
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 		return
 	}
-	setSuccessResponse(ctx, projects)
+	setSuccessResponse(ctx, convertProjectToWspace(projects, &user.ID))
 }
 
 /**
@@ -112,7 +141,7 @@ func (projectController *ProjectController) myJoiningProjects(ctx *macaron.Conte
 	if err != nil {
 		setFailResponse(ctx, model.SYSTEM_ERROR, err)
 	}
-	setSuccessResponse(ctx, projects)
+	setSuccessResponse(ctx, convertProjectToWspace(projects, &userId))
 }
 
 /**
