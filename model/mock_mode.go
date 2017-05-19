@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 	"math/rand"
+	"fmt"
 )
 
 const (
@@ -61,24 +62,24 @@ func init() {
 
 	MOCK_MAP = make(map[string]MockType)
 	MOCK_MAP[MOCK_STRING] = &StrMock{Arr: &[][]int{[]int{10, 48}, []int{26, 97}, []int{26, 65}}}
-	//MOCK_MAP[MOCK_STRING_REPEAT] = MOCK_STRING_REPEAT
-	//MOCK_MAP[MOCK_NUMBER] = MOCK_NUMBER
-	//MOCK_MAP[MOCK_DATE] = MOCK_DATE
-	//MOCK_MAP[MOCK_IMAGE] = MOCK_IMAGE
-	//MOCK_MAP[MOCK_INCR] = MOCK_INCR
-	//MOCK_MAP[MOCK_BOOL] = MOCK_BOOL
-	//MOCK_MAP[MOCK_COLOR] = MOCK_COLOR
-	//MOCK_MAP[MOCK_RGB] = MOCK_RGB
-	//MOCK_MAP[MOCK_RGBA] = MOCK_RGBA
+	MOCK_MAP[MOCK_STRING_REPEAT] = &StrRepeat{}
+	MOCK_MAP[MOCK_NUMBER] = &NumMock{}
+	MOCK_MAP[MOCK_DATE] = &DateMock{}
+	MOCK_MAP[MOCK_IMAGE] = &ImageMock{}
+	//MOCK_MAP[MOCK_INCR] =
+	MOCK_MAP[MOCK_BOOL] = &BoolMock{}
+	MOCK_MAP[MOCK_COLOR] = &ColorMock{}
+	MOCK_MAP[MOCK_RGB] = &RgbMock{}
+	MOCK_MAP[MOCK_RGBA] = &RgbaMock{}
 	//MOCK_MAP[MOCK_TEXT] = MOCK_TEXT
 	//MOCK_MAP[MOCK_NAME] = MOCK_NAME
 	//MOCK_MAP[MOCK_FIRST] = MOCK_FIRST
 	//MOCK_MAP[MOCK_LAST] = MOCK_LAST
 	//MOCK_MAP[MOCK_URL] = MOCK_URL
-	//MOCK_MAP[MOCK_EMAIL] = MOCK_EMAIL
-	//MOCK_MAP[MOCK_IP] = MOCK_IP
+	MOCK_MAP[MOCK_EMAIL] = &EmailMock{Arr: &[][]int{[]int{10, 48}, []int{26, 97}, []int{26, 65}}}
+	MOCK_MAP[MOCK_IP] = &IPMock{}
 	//MOCK_MAP[MOCK_ADDRESS] = MOCK_ADDRESS
-	//MOCK_MAP[MOCK_ZIP] = MOCK_ZIP
+	MOCK_MAP[MOCK_ZIP] = &ZipMock{}
 	//MOCK_MAP[MOCK_PCIK] = MOCK_PCIK
 	//MOCK_MAP[MOCK_ARRAY] = MOCK_ARRAY
 }
@@ -185,7 +186,7 @@ type StrRepeat struct {
 	BaseMock
 }
 
-func (strRepeat *StrRepeat) MockVal(params *[]string) (interface{}, error) {
+func (strRepeat StrRepeat) MockVal(params *[]string) (interface{}, error) {
 	var err error
 	var min, max int
 	var val string
@@ -206,12 +207,12 @@ func (strRepeat *StrRepeat) MockVal(params *[]string) (interface{}, error) {
 	ts := random.Intn(max - min + 1) + min
 	return strings.Repeat(val, ts), nil
 }
-/*
+
 type NumMock struct {
 	BaseMock
 }
 
-func (numMock *NumMock) MockVal(params *[]string) (interface{}, error) {
+func (numMock NumMock) MockVal(params *[]string) (interface{}, error) {
 	var err error
 	var min, max, dmin, dmax int = -1, -1, -1, -1
 	var intpart int = 0
@@ -219,7 +220,7 @@ func (numMock *NumMock) MockVal(params *[]string) (interface{}, error) {
 		for index, val := range *params {
 			var num int
 			if tmp := strings.TrimSpace(val); tmp != "" {
-				if num, err = getInt(&val); err != nil {
+				if num, err = getInt(val); err != nil {
 					return nil, err
 				}
 			}
@@ -248,7 +249,7 @@ func (numMock *NumMock) MockVal(params *[]string) (interface{}, error) {
 	intpart = random.Intn(dmax - dmin + 1) + dmin
 	if dmin == -1 && dmax == -1 {
 		// 返回int
-		return *intpart
+		return intpart, nil
 	} else {
 		if dmin == -1 {
 			dmin = 1
@@ -256,7 +257,7 @@ func (numMock *NumMock) MockVal(params *[]string) (interface{}, error) {
 		if dmax == -1 {
 			dmax = 10
 		}
-		return fmt.Sprintf("%." + strconv.Itoa(dmax-dmin) + "f", float64(intpart) + random.Float64())
+		return fmt.Sprintf("%." + strconv.Itoa(dmax-dmin) + "f", float64(intpart) + random.Float64()), nil
 	}
 }
 
@@ -264,10 +265,12 @@ type DateMock struct {
 	BaseMock
 }
 
-func (dateMock *DateMock) MockVal(params *[]string) (interface{}, error) {
+func (dateMock DateMock) MockVal(params *[]string) (interface{}, error) {
 	var dataForm string
-	if length := len(*params); length > 0 {
-		dataForm = strings.TrimSpace(*params[0])
+	arr := *params
+	if length := len(arr); length > 0 {
+		str, _ := getValue(arr[0])
+		dataForm = strings.TrimSpace(str)
 	}
 	return mockTime(dataForm, false)
 }
@@ -277,7 +280,7 @@ func mockTime(dataFormat string, isMockNow bool) (interface{}, error) {
 	dataForm := DEFAULT_DATE_FORMAT
 	// 日期类型转义
 	if dataFormat == "" {
-		if dataForm, err = getValue(&dataFormat); err != nil {
+		if dataForm, err = getValue(dataFormat); err != nil {
 			return nil, errors.New("error data fromat: " + dataFormat)
 		}
 	}
@@ -287,17 +290,19 @@ func mockTime(dataFormat string, isMockNow bool) (interface{}, error) {
 		random := rand.New(rand.NewSource(t.UnixNano()))
 		t = time.Unix(tNow - random.Int63n(tNow), 0)
 	}
-	return &(t.Format(dataForm)), nil
+	return t.Format(dataForm), nil
 }
 
 type NowMock struct {
 	BaseMock
 }
 
-func (nowMock *NowMock) MockVal(params *[]string) (interface{}, error) {
+func (nowMock NowMock) MockVal(params *[]string) (interface{}, error) {
 	var dataForm string
-	if length := len(*params); length > 0 {
-		dataForm = strings.TrimSpace(*params[0])
+	arr := *params
+	if length := len(arr); length > 0 {
+		str, _ := getValue(arr[0])
+		dataForm = strings.TrimSpace(str)
 	}
 	return mockTime(dataForm, true)
 }
@@ -306,7 +311,7 @@ type ImageMock struct {
 	BaseMock
 }
 
-func (imageMock *ImageMock) MockVal(params *[]string) (interface{}, error) {
+func (imageMock ImageMock) MockVal(params *[]string) (interface{}, error) {
 	size := "600x400"
 	bcolor := "000"
 	fcolor := "fff"
@@ -317,7 +322,7 @@ func (imageMock *ImageMock) MockVal(params *[]string) (interface{}, error) {
 		for index, val := range *params {
 			var str string
 			if tmp := strings.TrimSpace(val); tmp != "" {
-				if str, err = getValue(&val); err != nil {
+				if str, err = getValue(val); err != nil {
 					return nil, err
 				}
 			}
@@ -335,17 +340,18 @@ func (imageMock *ImageMock) MockVal(params *[]string) (interface{}, error) {
 			}
 		}
 	}
-	return &(fmt.Sprintf("https://dummyimage.com/%s/%s/%s/%s&text=%s", size, bcolor, fcolor, format, text))
+	return fmt.Sprintf("https://dummyimage.com/%s/%s/%s/%s&text=%s", size, bcolor, fcolor, format, text), nil
 }
 
 type BoolMock struct {
 	BaseMock
 }
 
-func (boolMock *BoolMock) MockVal(params *[]string) (interface{}, error) {
+func (boolMock BoolMock) MockVal(params *[]string) (interface{}, error) {
 	var truet int = 5
-	if params == nil && len(params) > 0 {
-		if num, err := getInt(&params[0]); err != nil {
+	arr := *params
+	if params == nil && len(arr) > 0 {
+		if num, err := getInt(arr[0]); err != nil {
 			return nil , err
 		} else if num < 10 && num > 0 {
 			truet = num
@@ -353,39 +359,39 @@ func (boolMock *BoolMock) MockVal(params *[]string) (interface{}, error) {
 	}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	if random.Intn(10) > truet {
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 type ColorMock struct {
 	BaseMock
 }
 
-func (colorMock *ColorMock) MockVal(params *[]string) (interface{}, error) {
+func (colorMock ColorMock) MockVal(params *[]string) (interface{}, error) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	result := "#" + fmt.Sprintf("%x", random.Intn(16777216))
-	return &result, nil
+	return result, nil
 }
 
 type RgbMock struct {
 	BaseMock
 }
 
-func (rgbMock *RgbMock) MockVal(params *[]string) (interface{}, error) {
+func (rgbMock RgbMock) MockVal(params *[]string) (interface{}, error) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	result := fmt.Sprintf("rgb(%d, %d, %d)", random.Intn(256), random.Intn(256), random.Intn(256))
-	return &result, nil
+	return result, nil
 }
 
 type RgbaMock struct {
 	BaseMock
 }
 
-func (rgbaMock *RgbaMock) MockVal(params *[]string) (interface{}, error) {
+func (rgbaMock RgbaMock) MockVal(params *[]string) (interface{}, error) {
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
 	result := fmt.Sprintf("rgba(%d, %d, %d, %0.2f)", random.Intn(256), random.Intn(256), random.Intn(256), float64(random.Intn(100)))
-	return &result, nil
+	return result, nil
 }
 
 type TextMock struct {
@@ -410,10 +416,23 @@ type UrlMock struct {
 
 type EmailMock struct {
 	BaseMock
+	Arr 	 	*[][]int
+}
+
+func (emailMock EmailMock) MockVal(params *[]string) (interface{}, error) {
+	return fmt.Sprintf("%s.%s@%s.%s", string(strRand(2, 1, emailMock.Arr)),
+		strRand(10, 1, emailMock.Arr), strRand(6, 1, emailMock.Arr),
+		strRand(5, 1, emailMock.Arr)), nil
 }
 
 type IPMock struct {
 	BaseMock
+}
+
+func (ipMock IPMock) MockVal(params *[]string) (interface{}, error) {
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	result := fmt.Sprintf("%d.%d.%d.%d", random.Intn(256), random.Intn(256), random.Intn(256), random.Intn(256))
+	return result, nil
 }
 
 type AddressMock struct {
@@ -424,6 +443,11 @@ type ZipMock struct {
 	BaseMock
 }
 
+func (zipMock ZipMock) MockVal(params *[]string) (interface{}, error) {
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return random.Intn(899099) + 100000, nil
+}
+
 type PickMock struct {
 	BaseMock
 }
@@ -431,7 +455,7 @@ type PickMock struct {
 type IncrMock struct {
 	BaseMock
 }
-*/
+
 
 func getValue(str string) (string, error) {
 	tmpStr := strings.TrimSpace(str)

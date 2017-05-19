@@ -4,17 +4,8 @@ import (
 	macaron "gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
 	"github.com/martini-contrib/cors"
-	"encoding/json"
-	"beebe/model"
 	"beebe/config"
 	"strings"
-	"fmt"
-)
-
-const (
-	RESULT_KEY string = "result_data"
-	ERROR_CODE_KEY	string = "error_code"
-	ERROR_INFO_KEY string = "error_info"
 )
 
 var m *macaron.Macaron
@@ -43,7 +34,6 @@ func setHandler() {
 			AllowCredentials: corsConfig.AllowCred,
 		}))
 	}
-	m.Use(jsonResponse)
 }
 
 func sessionConfig() {
@@ -72,64 +62,3 @@ func sessionConfig() {
 		Section:        "session",
 	}))
 }
-
-func jsonResponse(ctx *macaron.Context) string {
-	ctx.Next()
-	if errCode, ok := ctx.Data[ERROR_CODE_KEY]; ok {
-		if value, ok := errCode.(model.ErrorCode); ok {
-			restResult := model.ConvertRestResult(&value)
-			if value.Code == model.SUCCESS.Code {
-				if result, ok := ctx.Data[RESULT_KEY]; ok && result != nil {
-					restResult.SetData(result)
-				}
-			}
-			if err, ok := ctx.Data[ERROR_INFO_KEY]; ok {
-				//log.Logger().Error("error", zap.Any("err", err))
-				fmt.Printf("%v", err)
-			}
-			resultError, err := json.Marshal(*restResult)
-			if err != nil {
-				return ""
-			}
-			return string(resultError)
-		}
-	}
-	return ""
-}
-
-func needLogin(ctx *macaron.Context, sess session.Store) {
-	if user := getCurrentUser(sess); user == nil {
-		ctx.Resp.Write(NoLoginResult)
-	}
-}
-
-func noNeedLogin(ctx *macaron.Context, sess session.Store) {
-	if user := getCurrentUser(sess); user != nil {
-		ctx.Resp.Write(AlreadyLoginResult)
-	}
-}
-
-func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorCode, err error) {
-	if errCode != nil {
-		ctx.Data[ERROR_CODE_KEY] = *errCode
-		if errCode == model.SUCCESS && result != nil {
-			ctx.Data[RESULT_KEY] = result
-		}
-		if err != nil {
-			ctx.Data[ERROR_INFO_KEY] = err
-		}
-	}
-}
-
-func setSuccessResponse(ctx *macaron.Context, result interface{}) {
-	setResponse(ctx, result, model.SUCCESS, nil)
-}
-
-func setFailResponse(ctx *macaron.Context, errCode *model.ErrorCode, err error) {
-	setResponse(ctx, nil, errCode, err)
-}
-
-func setErrorResponse(ctx *macaron.Context, errCode *model.ErrorCode)  {
-	setResponse(ctx, nil, errCode, nil)
-}
-

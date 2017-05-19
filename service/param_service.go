@@ -204,7 +204,6 @@ func saveSubParam(tx *gorm.DB, actionId int64, parentId int64, subParams *[]mode
 	return nil
 }
 
-
 func (paramActionService *ParamActionServiceImpl) DeleteByActionId(actionId *int64, db *gorm.DB) error {
 	database := getDB(db)
 	comArr, err := GetComplexParameterService().GetByActionId(actionId, database)

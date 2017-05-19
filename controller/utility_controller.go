@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"mime/multipart"
 	"beebe/config"
 	"gopkg.in/macaron.v1"
 	"github.com/go-macaron/session"
@@ -10,26 +9,28 @@ import (
 	"github.com/go-macaron/binding"
 	"io"
 	"os"
+	"encoding/json"
+	"fmt"
 )
 
 var BusMap map[int64]string
+var NoLoginResult []byte
+var AlreadyLoginResult []byte
+var SystemErrorResult []byte
 
-type CommonController struct {}
-
-type UploadForm struct {
-	Bus 			int64					`form:"bus"`
-	Format        	string                	`form:"format"`
-	ImageUpload 	*multipart.FileHeader 	`form:"image"`
-}
+type CommonController struct{}
 
 type UploadResponse struct {
-	Url 			string			`json:"url"`
+	Url string            `json:"url"`
 }
 
 func init() {
+	NoLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_NO_LOGIN))
+	AlreadyLoginResult, _ = json.Marshal(model.ConvertRestResult(model.USER_ALREADY_LOGIN))
+	SystemErrorResult, _ = json.Marshal(model.ConvertRestResult(model.SYSTEM_ERROR))
 	commonController := new(CommonController)
 	Macaron().Group("/common", func() {
-		Macaron().Post("/upload",  binding.MultipartForm(UploadForm{}), commonController.upload)
+		Macaron().Post("/upload", binding.MultipartForm(UploadForm{}), commonController.upload)
 	}, needLogin)
 	BusMap = make(map[int64]string)
 	BusMap[0] = config.GetConfig().Upload.Default
@@ -45,7 +46,7 @@ func (commonController *CommonController) upload(uploadForm UploadForm, ctx *mac
 	} else {
 		busPath = val
 	}
-	if uploadForm.Format== "" {
+	if uploadForm.Format == "" {
 		uploadForm.Format = "png"
 	}
 	file, err := uploadForm.ImageUpload.Open()
@@ -67,4 +68,44 @@ func (commonController *CommonController) upload(uploadForm UploadForm, ctx *mac
 		return
 	}
 	setSuccessResponse(ctx, &UploadResponse{Url: filePath})
+}
+
+
+func needLogin(ctx *macaron.Context, sess session.Store) {
+	if user := getCurrentUser(sess); user == nil {
+		ctx.Resp.Write(NoLoginResult)
+	}
+}
+
+func noNeedLogin(ctx *macaron.Context, sess session.Store) {
+	if user := getCurrentUser(sess); user != nil {
+		ctx.Resp.Write(AlreadyLoginResult)
+	}
+}
+
+func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorCode, err error) {
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
+	restResult := model.ConvertRestResult(errCode)
+	if errCode.Code == model.SUCCESS.Code && result != nil {
+		restResult.SetData(result)
+	}
+	resultError, erro := json.Marshal(*restResult)
+	if erro != nil {
+		ctx.Resp.Write(SystemErrorResult)
+	}
+	ctx.Resp.Write(resultError)
+}
+
+func setSuccessResponse(ctx *macaron.Context, result interface{}) {
+	setResponse(ctx, result, model.SUCCESS, nil)
+}
+
+func setFailResponse(ctx *macaron.Context, errCode *model.ErrorCode, err error) {
+	setResponse(ctx, nil, errCode, err)
+}
+
+func setErrorResponse(ctx *macaron.Context, errCode *model.ErrorCode)  {
+	setResponse(ctx, nil, errCode, nil)
 }

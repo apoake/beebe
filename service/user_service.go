@@ -24,14 +24,17 @@ type UserService interface {
 	Login(loginUser *model.User) (*model.User, bool)
 	RegisterUser(registerUser *model.User) error
 	SearchUserByAccount(account *string, limit *int64) (*[]model.User, error)
-	HasProjectRight(projectId *int64, userId *int64) bool
+	HasProjectOperateRight(projectId *int64, userId *int64, role *model.Role) bool
+	HasProjectSeeRight(projectId *int64, userId *int64, role *model.Role) bool
+	HasProjectOperateRightByActionId(actionId *int64, userId *int64) bool
+	HasProjectSeeRightByActionId(actionId *int64, userId *int64) bool
 }
 
 type UserServiceImpl struct{}
 
 func (userService *UserServiceImpl) FindUserByUserId(userId *int64) (*model.User, bool) {
 	user := new(model.User)
-	isExist := !DB().First(user, userId).RecordNotFound()
+	isExist := !DB().First(user, *userId).RecordNotFound()
 	return user, isExist
 }
 
@@ -65,9 +68,46 @@ func (userService *UserServiceImpl) ChangePassword(user *model.User) error {
 	return DB().Model(&user).Where("id = ?", user.ID).Update("password", user.Password).Error
 }
 
-func (userService *UserServiceImpl) HasProjectRight(projectId *int64, userId *int64) bool {
+func (userService *UserServiceImpl) HasProjectOperateRight(projectId *int64, userId *int64) bool {
+	return userService.Right(projectId, userId, model.ROLE_OWNER)
+}
+
+func (userService *UserServiceImpl) HasProjectSeeRight(projectId *int64, userId *int64) bool {
+	return userService.Right(projectId, userId, model.ROLE_MEMBER)
+}
+
+func (userService *UserServiceImpl) Right(projectId *int64, userId *int64, role *model.Role) bool {
 	projectUserMapping := &model.ProjectUserMapping{}
-	return !DB().Where("user_id = ? and project_id = ?", *userId, *projectId).First(projectUserMapping).RecordNotFound()
+	isExist := !DB().Where("user_id = ? and project_id = ?", *userId, *projectId).First(projectUserMapping).RecordNotFound()
+	if !isExist {
+		return false
+	}
+	return userService.RightByMapping(projectUserMapping, role)
+}
+
+func (userService *UserServiceImpl) RightByActionId(actionId *int64, userId *int64, role *model.Role) bool {
+	projectUserMapping := &model.ProjectUserMapping{}
+	isExist := !DB().Select("project_user_mapping.id, project_user_mapping.project_id, project_user_mapping.team_id, project_user_mapping.access_level").
+		Joins("inner join project_action on project_action.project_id = project_user_mapping.project_id").
+		Where("project_action.action_id = ? and project_action.user_id = ?", *actionId, *userId).First(projectUserMapping).RecordNotFound()
+	if !isExist {
+		return false
+	}
+	return userService.RightByMapping(projectUserMapping, model.ROLE_MASTER)
+}
+
+func (UserService *UserServiceImpl) RightByMapping(projectUserMapping *model.ProjectUserMapping, role *model.Role) bool {
+	if projectUserMapping.AccessLevel <= role.ID {
+		return true
+	}
+	return false
+}
+
+func (userService *UserServiceImpl) HasProjectOperateRightByActionId(actionId *int64, userId *int64) bool {
+	return userService.RightByActionId(actionId, userId, model.ROLE_MASTER)
+}
+func (userService *UserServiceImpl) HasProjectSeeRightByActionId(actionId *int64, userId *int64) bool {
+	return userService.RightByActionId(actionId, userId, model.ROLE_MEMBER)
 }
 
 type TeamService interface {
@@ -84,6 +124,8 @@ type TeamService interface {
 	RemoveTeamUser(teamUser *model.TeamUser) error
 	GetTeamUserByUserIdAndTeamId(teamUser *model.TeamUser) (*model.TeamUser, bool)
 	HasTeamRight(teamUser *model.TeamUser) bool
+	SearchByTeamName(teamName *string, limit *int64) (*[]model.Team, error)
+	GetTeamByProjectId(project *int64) (*[]model.Team, error)
 }
 
 type TeamServiceImpl struct{}
@@ -282,4 +324,18 @@ func (teamService *TeamServiceImpl) GetTeamUserByUserIdAndTeamId(teamUser *model
 func (teamService *TeamServiceImpl) HasTeamRight(teamUser *model.TeamUser) bool {
 	_, ok := teamService.GetTeamUserByUserIdAndTeamId(teamUser)
 	return ok
+}
+
+func (teamService *TeamServiceImpl) SearchByTeamName(teamName *string, limit *int64) (*[]model.Team, error) {
+	result := make([]model.Team, 5)
+	err := DB().Where("name LIKE ", "%" + *teamName + "%").Offset(0).Limit(*limit).Find(&result).Error
+	return &result, err
+}
+
+func (teamService *TeamServiceImpl) GetTeamByProjectId(project *int64) (*[]model.Team, error) {
+	result := make([]model.Team, 5)
+	err := DB().Select("DISTINCT team.id, team.name, team.logo_url").
+		Joins("inner jion inner join project_user_mapping on project_user_mapping.team_id = team.id").
+		Where("project_user_mapping.project_id = ?", *project).Find(&result).Error
+	return &result, err
 }

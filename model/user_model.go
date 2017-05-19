@@ -17,9 +17,9 @@ type User struct {
 	ID				int64		`gorm:"primary_key" json:"id"`
 	Account			string		`gorm:"column:account" json:"account"`
 	Password		string		`gorm:"column:password" json:"password"`
-	Name 			string		`gorm:"column:name" json:"name"`
+	Name 			string		`gorm:"column:name" json:"nickName"`
 	ImgUrl			string		`gorm:"column:img_url" json:"imgUrl"`
-	Email 			string		`gorm:"column:email" json:"name"`
+	Email 			string		`gorm:"column:email" json:"email"`
 	IsLockOut		uint		`gorm:"column:is_locked_out" json:"isLockOut" gorm:"default:0"`
 	LastLoginDate	*time.Time	`gorm:"column:last_login_date"`
 }

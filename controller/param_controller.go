@@ -32,7 +32,7 @@ func (paramController *ParamController) saveParams(parameterAction model.Paramet
 			setErrorResponse(ctx, model.PROJECT_ACTION_NOT_FIND)
 			return
 		}
-		if !service.GetUserService().HasProjectRight(&projectAction.ProjectId, &userId) {
+		if !service.GetUserService().HasProjectSeeRight(&projectAction.ProjectId, &userId) {
 			setErrorResponse(ctx, model.USER_NO_RIGHT)
 			return
 		}
