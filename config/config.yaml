@@ -1,9 +1,12 @@
 dbconfig:
   db_dialect: mysql
-  db_host: tcp(127.0.0.1:3306)
   db_name: bee
-  db_user: root
-  db_password: root
+  db_host: tcp(120.26.221.15:3306)
+  db_user: dq
+  db_password: dq20170101
+#  db_host: tcp(127.0.0.1:3306)
+#  db_user: root
+#  db_password: root
   db_config: charset=utf8&parseTime=True&loc=Local
   db_maxopen: 100
   db_maxidle: 10
