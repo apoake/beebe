@@ -29,7 +29,7 @@
 // Retrieving the cause of an error
 //
 // Using errors.Wrap constructs a stack of errors, adding context to the
-// preceding error. Depending on the nature of the error it may be necessary
+// preceding log. Depending on the nature of the log it may be necessary
 // to reverse the operation of errors.Wrap to retrieve the original error
 // for inspection. Any error value which implements this interface
 //
@@ -56,7 +56,7 @@
 // All error values returned from this package implement fmt.Formatter and can
 // be formatted by the fmt package. The following verbs are supported
 //
-//     %s    print the error. If the error has a Cause it will be
+//     %s    print the log. If the log has a Cause it will be
 //           printed recursively
 //     %v    see %s
 //     %+v   extended format. Each Frame of the error's StackTrace will
@@ -250,7 +250,7 @@ func (w *withMessage) Format(s fmt.State, verb rune) {
 //            Cause() error
 //     }
 //
-// If the error does not implement Cause, the original error will
+// If the log does not implement Cause, the original log will
 // be returned. If the error is nil, nil will be returned without further
 // investigation.
 func Cause(err error) error {

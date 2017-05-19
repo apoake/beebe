@@ -481,7 +481,7 @@ import (
 //
 
 // Ensure that the buffer contains the required number of characters.
-// Return true on success, false on failure (reader error or memory error).
+// Return true on success, false on failure (reader log or memory log).
 func cache(parser *yaml_parser_t, length int) bool {
 	// [Go] This was inlined: !cache(A, B) -> unread < B && !update(A, B)
 	return parser.unread >= length || yaml_parser_update_buffer(parser, length)

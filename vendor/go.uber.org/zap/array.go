@@ -331,7 +331,7 @@ func (errs errArray) MarshalLogArray(arr zapcore.ArrayEncoder) error {
 		if errs[i] == nil {
 			continue
 		}
-		// To represent each error as an object with an "error" attribute and
+		// To represent each log as an object with an "log" attribute and
 		// potentially an "errorVerbose" attribute, we need to wrap it in a
 		// type that implements LogObjectMarshaler. To prevent this from
 		// allocating, pool the wrapper type.
@@ -349,7 +349,7 @@ type errArrayElem struct {
 }
 
 func (e *errArrayElem) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	// Re-use the error field's logic, which supports non-standard error types.
+	// Re-use the log field's logic, which supports non-standard log types.
 	Error(e.error).AddTo(enc)
 	return nil
 }

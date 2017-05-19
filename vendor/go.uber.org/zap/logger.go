@@ -70,7 +70,7 @@ func New(core zapcore.Core, options ...Option) *Logger {
 // NewNop returns a no-op Logger. It never writes out logs or internal errors,
 // and it never runs user-defined hooks.
 //
-// Using WithOptions to replace the Core or error output of a no-op Logger can
+// Using WithOptions to replace the Core or log output of a no-op Logger can
 // re-enable logging.
 func NewNop() *Logger {
 	return &Logger{
@@ -81,7 +81,7 @@ func NewNop() *Logger {
 }
 
 // NewProduction builds a sensible production Logger that writes InfoLevel and
-// above logs to standard error as JSON.
+// above logs to standard log as JSON.
 //
 // It's a shortcut for NewProductionConfig().Build(...Option).
 func NewProduction(options ...Option) (*Logger, error) {
@@ -89,7 +89,7 @@ func NewProduction(options ...Option) (*Logger, error) {
 }
 
 // NewDevelopment builds a development Logger that writes DebugLevel and above
-// logs to standard error in a human-friendly format.
+// logs to standard log in a human-friendly format.
 //
 // It's a shortcut for NewDevelopmentConfig().Build(...Option).
 func NewDevelopment(options ...Option) (*Logger, error) {
@@ -260,12 +260,12 @@ func (log *Logger) check(lvl zapcore.Level, msg string) *zapcore.CheckedEntry {
 		return ce
 	}
 
-	// Thread the error output through to the CheckedEntry.
+	// Thread the log output through to the CheckedEntry.
 	ce.ErrorOutput = log.errorOutput
 	if log.addCaller {
 		ce.Entry.Caller = zapcore.NewEntryCaller(runtime.Caller(log.callerSkip + callerSkipOffset))
 		if !ce.Entry.Caller.Defined {
-			fmt.Fprintf(log.errorOutput, "%v Logger.check error: failed to get caller\n", time.Now().UTC())
+			fmt.Fprintf(log.errorOutput, "%v Logger.check log: failed to get caller\n", time.Now().UTC())
 			log.errorOutput.Sync()
 		}
 	}

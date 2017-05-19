@@ -40,6 +40,10 @@
 			"Rev": "1c35d901db3da928c72a72d8458480cc9ade058f"
 		},
 		{
+			"ImportPath": "github.com/martini-contrib/cors",
+			"Rev": "553b9208d353a39b0850c02355f478ba020c86d7"
+		},
+		{
 			"ImportPath": "github.com/pkg/errors",
 			"Comment": "v0.8.0-4-gff09b13",
 			"Rev": "ff09b135c25aae272398c51a07235b90a75aa4f0"

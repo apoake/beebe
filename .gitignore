@@ -9,6 +9,7 @@ _test
 public/upload/project
 public/upload/team
 public/upload/user
+*.log
 
 # Architecture specific extensions/prefixes
 *.[568vq]

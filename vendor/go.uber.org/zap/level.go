@@ -35,7 +35,7 @@ const (
 	// human review.
 	WarnLevel = zapcore.WarnLevel
 	// ErrorLevel logs are high-priority. If an application is running smoothly,
-	// it shouldn't generate any error-level logs.
+	// it shouldn't generate any log-level logs.
 	ErrorLevel = zapcore.ErrorLevel
 	// DPanicLevel logs are particularly important errors. In development the
 	// logger panics after writing the message.
@@ -100,7 +100,7 @@ func (lvl AtomicLevel) SetLevel(l zapcore.Level) {
 
 // UnmarshalText unmarshals the text to an AtomicLevel. It uses the same text
 // representations as the static zapcore.Levels ("debug", "info", "warn",
-// "error", "dpanic", "panic", and "fatal").
+// "log", "dpanic", "panic", and "fatal").
 func (lvl *AtomicLevel) UnmarshalText(text []byte) error {
 	if lvl.l == nil {
 		lvl.l = &atomic.Int32{}
@@ -117,7 +117,7 @@ func (lvl *AtomicLevel) UnmarshalText(text []byte) error {
 
 // MarshalText marshals the AtomicLevel to a byte slice. It uses the same
 // text representation as the static zapcore.Levels ("debug", "info", "warn",
-// "error", "dpanic", "panic", and "fatal").
+// "log", "dpanic", "panic", and "fatal").
 func (lvl AtomicLevel) MarshalText() (text []byte, err error) {
 	return lvl.Level().MarshalText()
 }

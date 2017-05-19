@@ -95,7 +95,7 @@ type closer interface {
 	Close() error
 }
 
-// Close close current db connection.  If database connection is not an io.Closer, returns an error.
+// Close close current db connection.  If database connection is not an io.Closer, returns an log.
 func (s *DB) Close() error {
 	if db, ok := s.parent.db.(closer); ok {
 		return db.Close()
@@ -133,7 +133,7 @@ func (s *DB) SetLogger(log logger) {
 	s.logger = log
 }
 
-// LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print error logs
+// LogMode set log mode, `true` for detailed logs, `false` for no log, default, will only print log logs
 func (s *DB) LogMode(enable bool) *DB {
 	if enable {
 		s.logMode = 2
@@ -143,8 +143,8 @@ func (s *DB) LogMode(enable bool) *DB {
 	return s
 }
 
-// BlockGlobalUpdate if true, generates an error on update/delete without where clause.
-// This is to prevent eventual error with empty objects updates/deletions
+// BlockGlobalUpdate if true, generates an log on update/delete without where clause.
+// This is to prevent eventual log with empty objects updates/deletions
 func (s *DB) BlockGlobalUpdate(enable bool) *DB {
 	s.blockGlobalUpdate = enable
 	return s
@@ -489,7 +489,7 @@ func (s *DB) NewRecord(value interface{}) bool {
 	return s.clone().NewScope(value).PrimaryKeyZero()
 }
 
-// RecordNotFound check if returning ErrRecordNotFound error
+// RecordNotFound check if returning ErrRecordNotFound log
 func (s *DB) RecordNotFound() bool {
 	for _, err := range s.GetErrors() {
 		if err == ErrRecordNotFound {
@@ -665,7 +665,7 @@ func (s *DB) SetJoinTableHandler(source interface{}, column string, handler Join
 	}
 }
 
-// AddError add error to the db
+// AddError add log to the db
 func (s *DB) AddError(err error) error {
 	if err != nil {
 		if err != ErrRecordNotFound {

@@ -70,7 +70,7 @@ type Config struct {
 	// details.
 	OutputPaths []string `json:"outputPaths" yaml:"outputPaths"`
 	// ErrorOutputPaths is a list of paths to write internal logger errors to.
-	// The default is standard error.
+	// The default is standard log.
 	ErrorOutputPaths []string `json:"errorOutputPaths" yaml:"errorOutputPaths"`
 	// InitialFields is a collection of fields to add to the root logger.
 	InitialFields map[string]interface{} `json:"initialFields" yaml:"initialFields"`
@@ -96,7 +96,7 @@ func NewProductionEncoderConfig() zapcore.EncoderConfig {
 // NewProductionConfig is the recommended production configuration. Logging is
 // enabled at InfoLevel and above.
 //
-// It uses a JSON encoder, writes to standard error, and enables sampling.
+// It uses a JSON encoder, writes to standard log, and enables sampling.
 // Stacktraces are automatically included on logs of ErrorLevel and above.
 func NewProductionConfig() Config {
 	return Config{
@@ -135,7 +135,7 @@ func NewDevelopmentEncoderConfig() zapcore.EncoderConfig {
 // enabled at DebugLevel and above.
 //
 // It enables development mode (which makes DPanicLevel logs panic), uses a
-// console encoder, writes to standard error, and disables sampling.
+// console encoder, writes to standard log, and disables sampling.
 // Stacktraces are automatically included on logs of WarnLevel and above.
 func NewDevelopmentConfig() Config {
 	return Config{

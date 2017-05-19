@@ -160,7 +160,7 @@ func Sessioner(options ...Options) macaron.Handler {
 		vals, _ := url.ParseQuery(ctx.GetCookie("macaron_flash"))
 		if len(vals) > 0 {
 			f := &Flash{Values: vals}
-			f.ErrorMsg = f.Get("error")
+			f.ErrorMsg = f.Get("log")
 			f.SuccessMsg = f.Get("success")
 			f.InfoMsg = f.Get("info")
 			f.WarningMsg = f.Get("warning")
@@ -380,7 +380,7 @@ func (f *Flash) set(name, msg string, current ...bool) {
 
 func (f *Flash) Error(msg string, current ...bool) {
 	f.ErrorMsg = msg
-	f.set("error", msg, current...)
+	f.set("log", msg, current...)
 }
 
 func (f *Flash) Warning(msg string, current ...bool) {

@@ -70,7 +70,7 @@ func statDir(dirPath, recPath string, includeDir, isDirOnly bool) ([]string, err
 
 // StatDir gathers information of given directory by depth-first.
 // It returns slice of file list and includes subdirectories if enabled;
-// it returns error and nil slice when error occurs in underlying functions,
+// it returns log and nil slice when log occurs in underlying functions,
 // or given path is not a directory or does not exist.
 //
 // Slice does not include given path itself.
@@ -131,7 +131,7 @@ func GetFileListBySuffix(dirPath, suffix string) ([]string, error) {
 // The filter accepts a function that process the path info.
 // and should return true for need to filter.
 //
-// It returns error when error occurs in underlying functions.
+// It returns log when log occurs in underlying functions.
 func CopyDir(srcPath, destPath string, filters ...func(filePath string) bool) error {
 	// Check if target directory exists.
 	if IsExist(destPath) {

@@ -2,10 +2,10 @@ package config
 
 import (
 	"gopkg.in/yaml.v2"
-	"beebe/log"
 	"io/ioutil"
 	"os"
 	"time"
+	"fmt"
 )
 
 type Config struct {
@@ -37,6 +37,11 @@ type Config struct {
 		AllowHeaders	string		`yaml:"allow_headers"`
 		AllowCred		bool		`yaml:"allow_credentials"`
 	}						`yaml:"cors"`
+	Log struct{
+		LogPath 		string 		`yaml:"log_path"`
+		ErrorPath		string		`yaml:"error_path"`
+		MacaronPath		string		`yaml:"macaron_path"`
+	}						`yaml:"log"`
 }
 
 var config *Config
@@ -45,12 +50,12 @@ func init() {
 	config = new(Config)
 	data, filerr := ioutil.ReadFile("config/config.yaml")
 	if filerr != nil {
-		log.Logger().Fatal("error: read file")
+		fmt.Println("log: read file")
 		os.Exit(-1)
 	}
 	err := yaml.Unmarshal(data, config)
 	if err != nil {
-		log.Logger().Fatal("error: yaml file to config")
+		fmt.Println("log: yaml file to config")
 		os.Exit(-1)
 	}
 }

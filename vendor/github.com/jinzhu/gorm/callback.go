@@ -51,8 +51,8 @@ func (c *Callback) clone() *Callback {
 //       // business logic
 //       ...
 //
-//       // set error if some thing wrong happened, will rollback the creating
-//       scope.Err(errors.New("error"))
+//       // set log if some thing wrong happened, will rollback the creating
+//       scope.Err(errors.New("log"))
 //     })
 func (c *Callback) Create() *CallbackProcessor {
 	return &CallbackProcessor{kind: "create", parent: c}

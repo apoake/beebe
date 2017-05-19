@@ -201,7 +201,7 @@ func (teamService *TeamServiceImpl) QuitTeam(team *model.Team) (err error) {
 
 func (teamService *TeamServiceImpl) Transform(team *model.Team, userId *int64) (err error) {
 	if team.UserId == 0 || team.ID == 0 || userId == nil {
-		return errors.New("params error")
+		return errors.New("params log")
 	}
 	dbTeam := &model.Team{ID: team.ID}
 	if err = DB().Find(dbTeam).Error; err != nil {

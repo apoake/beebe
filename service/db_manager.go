@@ -21,7 +21,7 @@ func init() {
 	db.DB().SetMaxIdleConns(conf.MaxIdle)
 	db.DB().SetConnMaxLifetime(time.Minute * conf.MaxLifeTime)
 	if err != nil {
-		log.Logger().Fatal("db config error")
+		log.Log.Fatal("db config error")
 		os.Exit(-1)
 	}
 }

@@ -22,3 +22,7 @@ cors:
   allow_methods:  POST
   allow_headers: Origin,Content-Type
   allow_credentials: true
+log:
+  log_path: log/log/beebe.log
+  error_path: log/log/beebe-log.log
+  macaron_path: log/log/macaron.log

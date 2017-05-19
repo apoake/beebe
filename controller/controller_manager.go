@@ -6,15 +6,20 @@ import (
 	"github.com/martini-contrib/cors"
 	"beebe/config"
 	"strings"
+	"time"
+	"fmt"
+	"beebe/log"
+	"go.uber.org/zap"
+	"net/http"
+	"beebe/utils"
 )
 
 var m *macaron.Macaron
+var LogTimeFormat string = "2006-01-02 15:04:05"
 
 func init() {
 	m = macaron.New()
 	setHandler()
-	m.Use(macaron.Recovery())
-	m.Use(macaron.Logger())
 	m.Use(macaron.Recovery())
 	m.Use(macaron.Static("public"))
 	sessionConfig()
@@ -34,6 +39,8 @@ func setHandler() {
 			AllowCredentials: corsConfig.AllowCred,
 		}))
 	}
+	//m.Use(macaron.Logger())
+	m.Use(Logger())
 }
 
 func sessionConfig() {
@@ -61,4 +68,33 @@ func sessionConfig() {
 		// 配置分区名称，默认为 "session"
 		Section:        "session",
 	}))
+}
+
+func Logger() macaron.Handler {
+	return func(ctx *macaron.Context) {
+		start := time.Now()
+		requestId := utils.GetGuid()
+		log.Mlog.Info(fmt.Sprintf("Macaron %s:[%s] Started %s %s for %s", start.Format(LogTimeFormat), requestId, ctx.Req.Method, ctx.Req.RequestURI, ctx.RemoteAddr()),
+			zap.String("requestId", requestId),
+			zap.String("startTime", start.Format(LogTimeFormat)),
+			zap.String("requestMethod", ctx.Req.Method),
+			zap.String("requestUri", ctx.Req.RequestURI),
+			zap.String("remoteAddr", ctx.RemoteAddr()))
+		log.Mlog.Sync()
+		ctx.Next()
+		rw := ctx.Resp.(macaron.ResponseWriter)
+		end := time.Now()
+		status := rw.Status()
+		statusName := http.StatusText(status)
+		dur := time.Since(start).String()
+
+		log.Mlog.Info(fmt.Sprintf("Macaron %s:[%s] Completed %s %d %s in %s", end.Format(LogTimeFormat), requestId, ctx.Req.RequestURI, rw.Status(), statusName, dur),
+			zap.String("requestId", requestId),
+			zap.String("endTime", end.Format(LogTimeFormat)),
+			zap.String("requestUri", ctx.Req.RequestURI),
+			zap.Int("status", status),
+			zap.String("statusName", statusName),
+			zap.String("useTime", dur))
+		log.Mlog.Sync()
+	}
 }

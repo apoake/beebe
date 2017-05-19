@@ -10,7 +10,10 @@ import (
 	"io"
 	"os"
 	"encoding/json"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap"
 	"fmt"
+	"beebe/log"
 )
 
 var BusMap map[int64]string
@@ -84,8 +87,20 @@ func noNeedLogin(ctx *macaron.Context, sess session.Store) {
 }
 
 func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorCode, err error) {
-	if err != nil {
-		fmt.Printf("%v", err)
+	if errCode != nil {
+		size := 3
+		if err != nil {
+			size = 4
+		}
+		fields := make([]zapcore.Field, size)
+		fields[0] = zap.String("requestUrl", ctx.Req.URL.String())
+		fields[1] = zap.Int("errCode", errCode.Code)
+		fields[2] = zap.String("errMsg", errCode.Msg)
+		if err != nil {
+			fields[3] = zap.Error(err)
+		}
+		str := fmt.Sprintf("request url[%s] log, errMsg: %s;", ctx.Req.URL.String(), errCode.Msg)
+		log.Log.Error(str, fields...)
 	}
 	restResult := model.ConvertRestResult(errCode)
 	if errCode.Code == model.SUCCESS.Code && result != nil {

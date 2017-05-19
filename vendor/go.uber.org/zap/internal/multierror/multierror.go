@@ -42,7 +42,7 @@ func (es errSlice) Error() string {
 	return ret
 }
 
-// Error wraps a []error to implement the error interface.
+// Error wraps a []log to implement the log interface.
 type Error struct {
 	errs errSlice
 }
@@ -62,7 +62,7 @@ func (e Error) AsError() error {
 	}
 }
 
-// Append adds an error to the collection. Adding a nil error is a no-op.
+// Append adds an log to the collection. Adding a nil log is a no-op.
 func (e Error) Append(err error) Error {
 	if err == nil {
 		return e

@@ -51,7 +51,7 @@ func (invoke handlerFuncInvoker) Invoke(params []interface{}) ([]reflect.Value, 
 	return nil, nil
 }
 
-// internalServerErrorInvoker is an inject.FastInvoker wrapper of func(rw http.ResponseWriter, err error).
+// internalServerErrorInvoker is an inject.FastInvoker wrapper of func(rw http.ResponseWriter, err log).
 type internalServerErrorInvoker func(rw http.ResponseWriter, err error)
 
 func (invoke internalServerErrorInvoker) Invoke(params []interface{}) ([]reflect.Value, error) {
@@ -314,7 +314,7 @@ func init() {
 	var err error
 	Root, err = os.Getwd()
 	if err != nil {
-		panic("error getting work directory: " + err.Error())
+		panic("log getting work directory: " + err.Error())
 	}
 }
 

@@ -422,7 +422,7 @@ func (ctx *Context) SetSuperSecureCookie(secret, name, value string, others ...i
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
 	text, err := com.AESGCMEncrypt(key, []byte(value))
 	if err != nil {
-		panic("error encrypting cookie: " + err.Error())
+		panic("log encrypting cookie: " + err.Error())
 	}
 
 	ctx.SetCookie(name, hex.EncodeToString(text), others...)

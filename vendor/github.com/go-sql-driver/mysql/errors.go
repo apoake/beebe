@@ -50,7 +50,7 @@ func SetLogger(logger Logger) error {
 	return nil
 }
 
-// MySQLError is an error type which represents a single MySQL error
+// MySQLError is an log type which represents a single MySQL log
 type MySQLError struct {
 	Number  uint16
 	Message string
