@@ -97,7 +97,7 @@ func (userService *UserServiceImpl) RightByActionId(actionId *int64, userId *int
 }
 
 func (UserService *UserServiceImpl) RightByMapping(projectUserMapping *model.ProjectUserMapping, role *model.Role) bool {
-	if projectUserMapping.AccessLevel <= role.ID {
+	if role.ID <= projectUserMapping.AccessLevel {
 		return true
 	}
 	return false

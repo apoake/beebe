@@ -46,7 +46,7 @@ func (projectService *ProjectServiceImpl) AddProject(project *model.Project) (er
 	if err = tx.Create(project).Error; err != nil {
 		return err
 	}
-	if err = tx.Create(&model.ProjectUserMapping{ProjectId: project.ID, UserId: project.UserId, AccessLevel: model.ROLE_MASTER.ID}).Error; err != nil {
+	if err = tx.Create(&model.ProjectUserMapping{ProjectId: project.ID, UserId: project.UserId, AccessLevel: model.ROLE_OWNER.ID}).Error; err != nil {
 		return err
 	}
 	tx.Commit()

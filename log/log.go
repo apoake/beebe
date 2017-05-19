@@ -4,8 +4,7 @@ package log
 import (
 	"go.uber.org/zap"
 	"beebe/config"
-	"time"
-	"strings"
+	"go.uber.org/zap/zapcore"
 )
 
 var Log *zap.Logger
@@ -17,41 +16,45 @@ func init() {
 }
 
 func configLogger() *zap.Logger {
-	logConfig := zap.NewProductionConfig()
-	today := time.Now().Format("2006-01-02")
 	conf := config.GetConfig().Log
-	index := strings.LastIndex(conf.LogPath, ".")
-	logConfig.OutputPaths = []string{conf.LogPath[0: index] + today + conf.LogPath[index:], "stderr"}
-	//index = strings.LastIndex(conf.ErrorPath, ".")
-	//logConfig.ErrorOutputPaths = []string{conf.ErrorPath[0: index] + today + conf.ErrorPath[index:], "stderr"}
+	logConfig := zapConfig(conf.IsDebug, []string{conf.LogPath, "stderr"})
 	logger, _ := logConfig.Build()
 	return logger
 }
 
 func configMacaronLogger() *zap.Logger {
-	logConfig := zap.NewProductionConfig()
-	today := time.Now().Format("2006-01-02")
 	conf := config.GetConfig().Log
-	index := strings.LastIndex(conf.MacaronPath, ".")
-	logConfig.OutputPaths = []string{conf.MacaronPath[0: index] + today + conf.MacaronPath[index:], "stderr"}
+	logConfig := zapConfig(conf.IsDebug, []string{conf.MacaronPath, "stderr"})
 	logger, _ := logConfig.Build()
 	return logger
 }
 
-func zapConfig(isDevelop bool) zap.Config {
-	if isDevelop {
-
+func zapConfig(isDevelop bool, output []string) zap.Config {
+	outputPath := []string{"stdout"}
+	if output == nil {
+		outputPath = output
 	}
 	return zap.Config{
 		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
 		Development: isDevelop,
-		Sampling: &SamplingConfig{
+		Sampling: &zap.SamplingConfig{
 			Initial:    100,
 			Thereafter: 100,
 		},
 		Encoding:         "json",
-		EncoderConfig:    NewProductionEncoderConfig(),
-		OutputPaths:      []string{"stderr"},
+		EncoderConfig:    zapcore.EncoderConfig{
+			TimeKey:        "time",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
+		OutputPaths:      outputPath,
 		ErrorOutputPaths: []string{"stderr"},
 	}
 }

@@ -38,6 +38,7 @@ type Config struct {
 		AllowCred		bool		`yaml:"allow_credentials"`
 	}						`yaml:"cors"`
 	Log struct{
+		IsDebug			bool 		`yaml:"is_debug"`
 		LogPath 		string 		`yaml:"log_path"`
 		ErrorPath		string		`yaml:"error_path"`
 		MacaronPath		string		`yaml:"macaron_path"`

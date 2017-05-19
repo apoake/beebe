@@ -8,9 +8,9 @@ const (
 	USER_SESSION_KEY = "user"
 )
 
-var ROLE_OWNER *Role = &Role{ID: 1, RoleName:"OWNER"}
-var ROLE_MASTER *Role = &Role{ID: 2, RoleName:"MASTER"}
-var ROLE_MEMBER *Role = &Role{ID: 3, RoleName:"MEMBER"}
+var ROLE_OWNER *Role = &Role{ID: 10, RoleName:"OWNER"}
+var ROLE_MASTER *Role = &Role{ID: 20, RoleName:"MASTER"}
+var ROLE_MEMBER *Role = &Role{ID: 30, RoleName:"MEMBER"}
 
 type User struct {
 	Model
