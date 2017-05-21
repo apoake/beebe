@@ -85,7 +85,7 @@ func (complexParameterService *ComplexParameterServiceImpl) DeleteByParameterIds
 }
 
 func (complexParameterService *ComplexParameterServiceImpl) DeleteByActionId(actionId *int64, db *gorm.DB) error {
-	return getDB(db).Where("active_id = ?", actionId).Delete(model.ComplexParameter{}).Error
+	return getDB(db).Where("action_id = ?", actionId).Delete(model.ComplexParameter{}).Error
 }
 
 func (complexParameterService *ComplexParameterServiceImpl) GetByActionId(actionId *int64, db *gorm.DB) (*[] model.ComplexParameter, error) {
@@ -118,7 +118,6 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	if  !ok {
 		return errors.New("not find projectAction")
 	}
-	// TODO: 权限限制
 	if projectAction == nil {
 		return errors.New("not find project_action by actionId: " + strconv.FormatInt(parameterAction.ActionId, 10))
 	}
@@ -130,41 +129,41 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	if err := GetParamService().CheckParams(responseParams); err != nil {
 		return err
 	}
-	var dbParamAction *model.ParameterAction
-	if parameterAction.ActionId > 0 {
-		dbParamAction, ok = paramActionService.Get(&parameterAction.ActionId)
-		if !ok {
-			return errors.New("not find record")
-		}
-	} else {
-		dbParamAction = new(model.ParameterAction)
-	}
+	//var dbParamAction *model.ParameterAction
+	dbParamAction := &model.ParameterAction{}
+	//if parameterAction.ActionId > 0 {
+	//	dbParamAction, ok = paramActionService.Get(&parameterAction.ActionId)
+	//	if !ok {
+	//		return errors.New("not find record")
+	//	}
+	//} else {
+	//	dbParamAction = new(model.ParameterAction)
+	//}
 	tx := DB().Begin()
 	defer func() {
 		if erro != nil {
 			tx.Rollback()
 		}
 	}()
+	if err := paramActionService.DeleteByActionId(&parameterAction.ActionId, tx); err != nil {
+		return err
+	}
 	// cleam complex_parameter
 	if err := GetComplexParameterService().DeleteByActionId(&parameterAction.ActionId, tx); err != nil {
 		return err
 	}
-	topParameter := &model.Parameter{Remark: model.TOP_REQUEST}
-	topResponseParameter := &model.Parameter{Remark: model.TOP_RESPONSE}
-	topParams := []model.Parameter{*topParameter, *topResponseParameter}
-	if err := tx.Save(&topParams).Error; err != nil {
+	topParameter := model.Parameter{Remark: model.TOP_REQUEST}
+	topResponseParameter := model.Parameter{Remark: model.TOP_RESPONSE}
+	if err := tx.Create(&topParameter).Error; err != nil {
 		return err
 	}
-	//if err := tx.Save(topParameter).Error; err != nil {
-	//	return err
-	//}
-	//if err := tx.Save(topResponseParameter).Error; err != nil {
-	//	return err
-	//}
-	if err := saveSubParam(tx, projectAction.ActionId, topParameter.ID, requestParams); err != nil {
+	if err := tx.Create(&topResponseParameter).Error; err != nil {
 		return err
 	}
-	if err := saveSubParam(tx, projectAction.ActionId, topResponseParameter.ID, responseParams); err != nil {
+	if err := saveSubParam(tx, parameterAction.ActionId, topParameter.ID, requestParams); err != nil {
+		return err
+	}
+	if err := saveSubParam(tx, parameterAction.ActionId, topResponseParameter.ID, responseParams); err != nil {
 		return err
 	}
 	requestArr, err := json.Marshal(requestParams)
@@ -175,6 +174,7 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	if err != nil {
 		return err
 	}
+	dbParamAction.ActionId = parameterAction.ActionId
 	dbParamAction.RequestId = topParameter.ID
 	dbParamAction.ResponseId = topResponseParameter.ID
 	dbParamAction.RequestParameter = string(requestArr)
@@ -192,7 +192,7 @@ func saveSubParam(tx *gorm.DB, actionId int64, parentId int64, subParams *[]mode
 		if err := tx.Save(responseTmp).Error; err != nil {
 			return err
 		}
-		if err := tx.Save(&model.ComplexParameter{ParameterId: parentId, SubParameterId: responseTmp.ID}).Error; err != nil {
+		if err := tx.Save(&model.ComplexParameter{ParameterId: parentId, SubParameterId: responseTmp.ID, ActionId:actionId}).Error; err != nil {
 			return err
 		}
 		if responseTmpVo.SubParam != nil {

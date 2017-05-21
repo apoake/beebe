@@ -87,7 +87,7 @@ func noNeedLogin(ctx *macaron.Context, sess session.Store) {
 }
 
 func setResponse(ctx *macaron.Context, result interface{}, errCode *model.ErrorCode, err error) {
-	if errCode != nil {
+	if errCode != nil && errCode.Code != model.SUCCESS.Code  {
 		size := 3
 		if err != nil {
 			size = 4

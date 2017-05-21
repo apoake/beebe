@@ -49,7 +49,7 @@ func getResultMap(parameterArr *[]model.ParameterVo) (*map[string]interface{}, e
 		if parameterVo.SubParam == nil {
 			if parameterVo.Expression == "" {
 				resultMap[parameterVo.Identifier] = nil
-			} else if resultMap[parameterVo.Identifier], err = model.GetMockManager().Mock(&parameterVo.Expression); err != nil {
+			} else if resultMap[parameterVo.Identifier], err = model.GetMockManager().MockData(&parameterVo.Expression); err != nil {
 				return nil, err
 			}
 		} else if resultMap[parameterVo.Identifier], err = getResultMap(parameterVo.SubParam); err != nil {

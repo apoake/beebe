@@ -21,9 +21,7 @@ type Parameter struct {
 	Identifier     string        `grom:"column:"identifier" json:"identifier"`
 	DataType       int8        `grom:"column:"data_type" json:"dataType"`
 	Remark         string        `grom:"column:"remark" json:"remark"`
-	ExpressionType int8          `grom:"column:"expression_type" json:"expressionType"`
 	Expression     string        `grom:"column:"expression" json:"expression"`
-	MockData       string        `grom:"column:"mock_data" json:"mockData"`
 }
 
 func (Parameter) TableName() string {
@@ -86,8 +84,7 @@ func (parameterVo *ParameterVo) Convert() *Parameter {
 		Identifier: parameterVo.Identifier,
 		DataType: parameterVo.DataType,
 		Remark: parameterVo.Remark,
-		Expression: parameterVo.Expression,
-		MockData: parameterVo.MockData}
+		Expression: parameterVo.Expression}
 }
 
 type ParameterActionVo struct {

@@ -13,13 +13,12 @@ type ParamController struct {}
 func init()  {
 	paramController := new(ParamController)
 	Macaron().Group("/params", func() {
-		Macaron().Post("save", binding.Bind(model.ParameterActionVo{}), paramController.saveParams)
+		Macaron().Post("/save", binding.Bind(model.ParameterActionVo{}), paramController.saveParams)
 	}, needLogin)
 }
 
 func (paramController *ParamController) saveParams(parameterAction model.ParameterActionVo, ctx *macaron.Context, sess session.Store) {
-	if (parameterAction.ActionId == 0 && (parameterAction.RequestId != 0 || parameterAction.ResponseId != 0)) ||
-		(parameterAction.ActionId > 0 && (parameterAction.ResponseId == 0 || parameterAction.RequestId == 0)) {
+	if parameterAction.ActionId == 0 {
 		setErrorResponse(ctx, model.PARAMETER_INVALID)
 		return
 	}

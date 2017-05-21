@@ -50,7 +50,7 @@ const (
 
 var StrMockFeatures map[string]int
 var MOCK_MAP map[string]MockType
-var REGEXP *regexp.Regexp = regexp.MustCompile(`^(@.+)\((.+),(.+),(.+)\)$`)
+var REGEXP *regexp.Regexp = regexp.MustCompile(`^(@.+)\(((.+)[,]?)*\)$`)
 var mockManager *MockManager = &MockManager{}
 
 func init() {
@@ -110,6 +110,65 @@ func (mockManager *MockManager) Mock(str *string) (interface{}, error) {
 	return str, nil
 }
 
+//func (mockManager *MockManager) warpResult (res interface{}, start, end string) (interface{}, error) {
+//
+//}
+
+func (mockManager *MockManager) MockData(str *string) (interface{}, error) {
+	if *str == "" {
+		return nil, errors.New("mock str is empty")
+	}
+	index := strings.Index(*str, MOCK_BRACKET_LEFT)
+	preIndex := strings.Index(*str, MOCK_PREFIX)
+	lastIndex := strings.LastIndex(*str, MOCK_BRACKET_RIGHT)
+	rs := []rune(*str)
+	prefix := string(rs[preIndex:index])
+	resultPrefix := string(rs[:preIndex])
+	resultLast := string(rs[lastIndex+1:])
+	println(resultPrefix)
+	println(resultLast)
+	if val, ok := MOCK_MAP[prefix]; ok {
+		var mockParams *[]string
+		if index + 1 == lastIndex {
+			mockParams = nil
+		} else {
+			paramStr := string(rs[index + 1:lastIndex])
+			if paramStrTrim := strings.TrimSpace(paramStr); paramStrTrim == "" {
+				mockParams = nil
+			} else {
+				mockParams = mockManager.getMockParams(&paramStrTrim)
+			}
+		}
+		if resultPrefix == "" && resultLast == "" {
+			return val.MockVal(mockParams)
+		}
+
+	}
+	return nil, errors.New("not support " + prefix)
+}
+
+func (mockManager *MockManager) getMockParams(str *string) *[]string {
+	arr := strings.Split(*str, ",")
+	result := make([]string, 0, len(arr))
+	tmpStr := ""
+	inTime := 0
+	for _, val := range arr {
+		str := strings.TrimSpace(val)
+		if strings.Contains(str, MOCK_BRACKET_LEFT) {
+			inTime++
+		}
+		if strings.Contains(str, MOCK_BRACKET_RIGHT) {
+			inTime--
+		}
+		tmpStr += str
+		if inTime == 0 {
+			result = append(result, tmpStr)
+			tmpStr = ""
+		}
+	}
+	return &result
+}
+
 type MockType interface {
 	MockVal(params *[]string) (interface{}, error)
 	//CheckRule(str *string) error
@@ -119,20 +178,6 @@ type BaseMock struct {
 	MockReg *regexp.Regexp
 }
 
-//func (baseMock *BaseMock) Mock(str *string) (interface{}, error) {
-//	if *str == "" {
-//		return nil, errors.New("mock str is empty")
-//	}
-//	index := strings.Index(*str, MOCK_BRACKET_LEFT)
-//	rs := []rune(*str)
-//	prefix := string(rs[:index])
-//	if val, ok := MOCK_MAP[prefix]; ok {
-//		// mock
-//		return val.MockVal(str)
-//	}
-//	return nil, errors.New("not support " + prefix)
-//}
-
 type StrMock struct {
 	Arr 	 	*[][]int
 	BaseMock
@@ -141,7 +186,7 @@ type StrMock struct {
 func (strMock StrMock) MockVal(params *[]string) (interface{}, error) {
 	var err error
 	var min, max int
-	var feature int
+	feature := 3
 	pa := *params
 	if min, err = getInt(pa[0]); err != nil {
 		return pa, err
@@ -240,13 +285,7 @@ func (numMock NumMock) MockVal(params *[]string) (interface{}, error) {
 		return nil, errors.New("params error")
 	}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	if dmin == -1 {
-		dmin = MIN_INT
-	}
-	if dmax == -1 {
-		dmax = MAX_INT
-	}
-	intpart = random.Intn(dmax - dmin + 1) + dmin
+	intpart = random.Intn(max - min + 1) + dmin
 	if dmin == -1 && dmax == -1 {
 		// 返回int
 		return intpart, nil
