@@ -67,7 +67,7 @@ func (paramService *ParamServiceImpl) CheckParams(params *[]model.ParameterVo) e
 }
 
 func (paramService *ParamServiceImpl) Delete(parameterIds *[]int64, db *gorm.DB) error {
-	return getDB(db).Where("id in (?)", parameterIds).Delete(model.ComplexParameter{}).Error
+	return getDB(db).Where("id in (?)", *parameterIds).Delete(model.Parameter{}).Error
 }
 
 
@@ -129,8 +129,12 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 	if err := GetParamService().CheckParams(responseParams); err != nil {
 		return err
 	}
-	//var dbParamAction *model.ParameterAction
-	dbParamAction := &model.ParameterAction{}
+	var dbParamAction *model.ParameterAction
+	if tmp, ok := paramActionService.Get(&parameterAction.ActionId); ok {
+		dbParamAction = tmp
+	} else {
+		dbParamAction = &model.ParameterAction{}
+	}
 	//if parameterAction.ActionId > 0 {
 	//	dbParamAction, ok = paramActionService.Get(&parameterAction.ActionId)
 	//	if !ok {
@@ -145,6 +149,9 @@ func (paramActionService *ParamActionServiceImpl) Save(parameterAction *model.Pa
 			tx.Rollback()
 		}
 	}()
+	if dbParamAction.RequestId != 0 || dbParamAction.ResponseId != 0 {
+		paramService.Delete(&[]int64{dbParamAction.RequestId, dbParamAction.ResponseId}, tx)
+	}
 	if err := paramActionService.DeleteByActionId(&parameterAction.ActionId, tx); err != nil {
 		return err
 	}

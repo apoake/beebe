@@ -30,9 +30,9 @@ func configMacaronLogger() *zap.Logger {
 }
 
 func zapConfig(isDevelop bool, output []string) zap.Config {
-	outputPath := []string{"stdout"}
-	if output == nil {
-		outputPath = output
+	outputPath := output
+	if isDevelop {
+		outputPath = []string{"stdout"}
 	}
 	return zap.Config{
 		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),

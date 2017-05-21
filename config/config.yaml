@@ -27,6 +27,6 @@ cors:
   allow_credentials: true
 log:
   is_debug: false
-  log_path: log/log/beebe.log
-  error_path: log/log/beebe-log.log
-  macaron_path: log/log/macaron.log
+  log_path: logs/beebe.log
+  error_path: logs/beebe-log.log
+  macaron_path: logs/macaron.log

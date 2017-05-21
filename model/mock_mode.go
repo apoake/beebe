@@ -11,40 +11,40 @@ import (
 )
 
 const (
-	MOCK_SPLIT = ","
-	MOCK_PREFIX = "@"
-	MOCK_BRACKET_LEFT = "("
+	MOCK_SPLIT         = ","
+	MOCK_PREFIX        = "@"
+	MOCK_BRACKET_LEFT  = "("
 	MOCK_BRACKET_RIGHT = ")"
 
-	MOCK_STRING = "@str"
+	MOCK_STRING        = "@str"
 	MOCK_STRING_REPEAT = "@stre"
-	MOCK_NUMBER = "@num"
-	MOCK_DATE = "@date"
-	MOCK_IMAGE = "@img"
-	MOCK_INCR = "@incr"
-	MOCK_BOOL = "@bool"
-	MOCK_COLOR = "@color"
-	MOCK_RGB = "@rgb"
-	MOCK_RGBA = "@rgba"
-	MOCK_TEXT = "@text"
-	MOCK_NAME = "@name"
-	MOCK_FIRST = "@first"
-	MOCK_LAST = "@last"
-	MOCK_URL = "@url"
-	MOCK_EMAIL = "@email"
-	MOCK_IP = "@ip"
-	MOCK_ADDRESS = "@address"
-	MOCK_ZIP = "@zip"
-	MOCK_PCIK = "@pick"
-	MOCK_ARRAY = "@arr"
+	MOCK_NUMBER        = "@num"
+	MOCK_DATE          = "@date"
+	MOCK_IMAGE         = "@img"
+	MOCK_INCR          = "@incr"
+	MOCK_BOOL          = "@bool"
+	MOCK_COLOR         = "@color"
+	MOCK_RGB           = "@rgb"
+	MOCK_RGBA          = "@rgba"
+	MOCK_TEXT          = "@text"
+	MOCK_NAME          = "@name"
+	MOCK_FIRST         = "@first"
+	MOCK_LAST          = "@last"
+	MOCK_URL           = "@url"
+	MOCK_EMAIL         = "@email"
+	MOCK_IP            = "@ip"
+	MOCK_ADDRESS       = "@address"
+	MOCK_ZIP           = "@zip"
+	MOCK_PCIK          = "@pick"
+	MOCK_ARRAY         = "@arr"
 
-	STR_FEATURE_LOWER = "lower"
-	STR_FEATURE_UPPER = "upper"
+	STR_FEATURE_LOWER  = "lower"
+	STR_FEATURE_UPPER  = "upper"
 	STR_FEATURE_NUMBER = "number"
-	STR_FEATURE_ALL = "all"
+	STR_FEATURE_ALL    = "all"
 
-	MAX_INT = 1 << 32 -1
-	MIN_INT = 0 - MAX_INT -1
+	MAX_INT             = 1<<32 - 1
+	MIN_INT             = 0 - MAX_INT - 1
 	DEFAULT_DATE_FORMAT = "2006-01-02 15:04:05"
 )
 
@@ -110,47 +110,90 @@ func (mockManager *MockManager) Mock(str *string) (interface{}, error) {
 	return str, nil
 }
 
-//func (mockManager *MockManager) warpResult (res interface{}, start, end string) (interface{}, error) {
-//
-//}
-
 func (mockManager *MockManager) MockData(str *string) (interface{}, error) {
 	if *str == "" {
 		return nil, errors.New("mock str is empty")
 	}
 	index := strings.Index(*str, MOCK_BRACKET_LEFT)
 	preIndex := strings.Index(*str, MOCK_PREFIX)
-	lastIndex := strings.LastIndex(*str, MOCK_BRACKET_RIGHT)
+	lastIndex := mockManager.getFirstBracketRightIndex(str)
 	rs := []rune(*str)
 	prefix := string(rs[preIndex:index])
 	resultPrefix := string(rs[:preIndex])
-	resultLast := string(rs[lastIndex+1:])
-	println(resultPrefix)
-	println(resultLast)
+	resultLast := ""
+	if lastIndex+1 < len(*str) {
+		resultLast = string(rs[lastIndex + 1 :])
+	}
 	if val, ok := MOCK_MAP[prefix]; ok {
 		var mockParams *[]string
-		if index + 1 == lastIndex {
+		if index+1 == lastIndex {
 			mockParams = nil
 		} else {
-			paramStr := string(rs[index + 1:lastIndex])
+			paramStr := string(rs[index+1:lastIndex])
 			if paramStrTrim := strings.TrimSpace(paramStr); paramStrTrim == "" {
 				mockParams = nil
 			} else {
 				mockParams = mockManager.getMockParams(&paramStrTrim)
 			}
 		}
+		result, err := val.MockVal(mockParams)
 		if resultPrefix == "" && resultLast == "" {
-			return val.MockVal(mockParams)
+			return result, err
 		}
-
+		return mockManager.warpResult(result, resultPrefix, resultLast)
 	}
 	return nil, errors.New("not support " + prefix)
 }
 
+func (mockManager *MockManager) warpResult(res interface{}, start, end string) (interface{}, error) {
+	if val, ok := res.(string); ok {
+		result := val
+		if start != "" {
+			startVal, err := getValue(start)
+			if err != nil {
+				return nil, err
+			}
+			result = startVal + result
+		}
+		if end != "" {
+			endVal, err := getValue(end)
+			if err != nil {
+				return nil, err
+			}
+			result += endVal
+		}
+		return result, nil
+	}
+	return nil, errors.New("just support string join")
+}
+
+func (mockManage *MockManager) getFirstBracketRightIndex(str *string) int {
+	rs := []rune(*str)
+	length := len(rs)
+	pIndex := strings.Index(*str, MOCK_BRACKET_LEFT)
+	time := 0
+	index := pIndex
+	for ; index < length; index++ {
+		if rs[index] == '(' {
+			time++
+		} else if rs[index] == ')' {
+			time--
+		}
+		if time == 0 {
+			break
+		}
+	}
+	if index >= length {
+		return -1
+	}
+	return index
+}
+
 func (mockManager *MockManager) getMockParams(str *string) *[]string {
-	arr := strings.Split(*str, ",")
-	result := make([]string, 0, len(arr))
-	tmpStr := ""
+	arr := strings.Split(*str, MOCK_SPLIT)
+	length := len(arr)
+	result := make([]string, 0, length)
+	tmpArr := make([]string, 0, length)
 	inTime := 0
 	for _, val := range arr {
 		str := strings.TrimSpace(val)
@@ -160,10 +203,10 @@ func (mockManager *MockManager) getMockParams(str *string) *[]string {
 		if strings.Contains(str, MOCK_BRACKET_RIGHT) {
 			inTime--
 		}
-		tmpStr += str
+		tmpArr = append(tmpArr, str)
 		if inTime == 0 {
-			result = append(result, tmpStr)
-			tmpStr = ""
+			result = append(result, strings.Join(tmpArr, MOCK_SPLIT))
+			tmpArr = make([]string, 0, length)
 		}
 	}
 	return &result
@@ -179,7 +222,7 @@ type BaseMock struct {
 }
 
 type StrMock struct {
-	Arr 	 	*[][]int
+	Arr *[][]int
 	BaseMock
 }
 
@@ -208,7 +251,7 @@ func (strMock StrMock) MockVal(params *[]string) (interface{}, error) {
 		}
 	}
 	rand.Seed(time.Now().UnixNano())
-	size := rand.Intn(max - min + 1) + min
+	size := rand.Intn(max-min+1) + min
 	return string(strRand(size, feature, strMock.Arr)), nil
 }
 
@@ -249,7 +292,7 @@ func (strRepeat StrRepeat) MockVal(params *[]string) (interface{}, error) {
 		return nil, err
 	}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	ts := random.Intn(max - min + 1) + min
+	ts := random.Intn(max-min+1) + min
 	return strings.Repeat(val, ts), nil
 }
 
@@ -285,7 +328,7 @@ func (numMock NumMock) MockVal(params *[]string) (interface{}, error) {
 		return nil, errors.New("params error")
 	}
 	random := rand.New(rand.NewSource(time.Now().UnixNano()))
-	intpart = random.Intn(max - min + 1) + dmin
+	intpart = random.Intn(max-min+1) + min
 	if dmin == -1 && dmax == -1 {
 		// 返回int
 		return intpart, nil
@@ -296,7 +339,7 @@ func (numMock NumMock) MockVal(params *[]string) (interface{}, error) {
 		if dmax == -1 {
 			dmax = 10
 		}
-		return fmt.Sprintf("%." + strconv.Itoa(dmax-dmin) + "f", float64(intpart) + random.Float64()), nil
+		return fmt.Sprintf("%."+strconv.Itoa(dmax-dmin)+"f", float64(intpart)+random.Float64()), nil
 	}
 }
 
@@ -327,7 +370,7 @@ func mockTime(dataFormat string, isMockNow bool) (interface{}, error) {
 	if !isMockNow {
 		tNow := t.Unix()
 		random := rand.New(rand.NewSource(t.UnixNano()))
-		t = time.Unix(tNow - random.Int63n(tNow), 0)
+		t = time.Unix(tNow-random.Int63n(tNow), 0)
 	}
 	return t.Format(dataForm), nil
 }
@@ -391,7 +434,7 @@ func (boolMock BoolMock) MockVal(params *[]string) (interface{}, error) {
 	arr := *params
 	if params == nil && len(arr) > 0 {
 		if num, err := getInt(arr[0]); err != nil {
-			return nil , err
+			return nil, err
 		} else if num < 10 && num > 0 {
 			truet = num
 		}
@@ -455,7 +498,7 @@ type UrlMock struct {
 
 type EmailMock struct {
 	BaseMock
-	Arr 	 	*[][]int
+	Arr *[][]int
 }
 
 func (emailMock EmailMock) MockVal(params *[]string) (interface{}, error) {
@@ -495,26 +538,35 @@ type IncrMock struct {
 	BaseMock
 }
 
-
 func getValue(str string) (string, error) {
+	val, err := get(str)
+	if err != nil {
+		return "", err
+	}
+	if val, ok := val.(string); ok {
+		return val, nil
+	}
+	return "", errors.New("not string type")
+}
+
+func get(str string) (interface{}, error) {
 	tmpStr := strings.TrimSpace(str)
 	if strings.Contains(tmpStr, MOCK_PREFIX) {
-		intr, err := mockManager.Mock(&tmpStr)
-		if err != nil {
-			return "", err
-		}
-		if val, ok := intr.(string); ok {
-			return val, nil
-		}
-		return "", errors.New("not string type")
+		return mockManager.MockData(&tmpStr)
 	}
 	return tmpStr, nil
 }
 
 func getInt(str string) (int, error) {
-	result, err := getValue(str)
+	val, err := get(str)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
-	return strconv.Atoi(result)
+	if val, ok := val.(int); ok {
+		return val, nil
+	}
+	if val, ok := val.(string); ok {
+		return strconv.Atoi(val)
+	}
+	return 0, errors.New("not int type")
 }
