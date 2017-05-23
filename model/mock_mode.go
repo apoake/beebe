@@ -146,25 +146,31 @@ func (mockManager *MockManager) MockData(str *string) (interface{}, error) {
 }
 
 func (mockManager *MockManager) warpResult(res interface{}, start, end string) (interface{}, error) {
+	var result string
 	if val, ok := res.(string); ok {
-		result := val
-		if start != "" {
-			startVal, err := getValue(start)
-			if err != nil {
-				return nil, err
-			}
-			result = startVal + result
-		}
-		if end != "" {
-			endVal, err := getValue(end)
-			if err != nil {
-				return nil, err
-			}
-			result += endVal
-		}
-		return result, nil
+		result = val
 	}
-	return nil, errors.New("just support string join")
+	if val, ok := res.(int); ok {
+		result = strconv.Itoa(val)
+	}
+	if result == "" {
+		return nil, errors.New("just support string,int join")
+	}
+	if start != "" {
+		startVal, err := getValue(start)
+		if err != nil {
+			return nil, err
+		}
+		result = startVal + result
+	}
+	if end != "" {
+		endVal, err := getValue(end)
+		if err != nil {
+			return nil, err
+		}
+		result += endVal
+	}
+	return result, nil
 }
 
 func (mockManage *MockManager) getFirstBracketRightIndex(str *string) int {
@@ -197,11 +203,11 @@ func (mockManager *MockManager) getMockParams(str *string) *[]string {
 	inTime := 0
 	for _, val := range arr {
 		str := strings.TrimSpace(val)
-		if strings.Contains(str, MOCK_BRACKET_LEFT) {
-			inTime++
+		if tmp := strings.Count(str, MOCK_BRACKET_LEFT); tmp > 0 {
+			inTime += tmp
 		}
-		if strings.Contains(str, MOCK_BRACKET_RIGHT) {
-			inTime--
+		if tmp := strings.Count(str, MOCK_BRACKET_RIGHT); tmp > 0 {
+			inTime -= tmp
 		}
 		tmpArr = append(tmpArr, str)
 		if inTime == 0 {
