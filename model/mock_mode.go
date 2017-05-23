@@ -110,6 +110,50 @@ func (mockManager *MockManager) Mock(str *string) (interface{}, error) {
 	return str, nil
 }
 
+func (mockManager *MockManager) MockDataFunc(str *string, f func(interface{})(interface{}, error)) (interface{}, error) {
+	if *str == "" {
+		return nil, errors.New("mock str is empty")
+	}
+	index := strings.Index(*str, MOCK_BRACKET_LEFT)
+	preIndex := strings.Index(*str, MOCK_PREFIX)
+	lastIndex := mockManager.getFirstBracketRightIndex(str)
+	rs := []rune(*str)
+	prefix := string(rs[preIndex:index])
+	resultPrefix := string(rs[:preIndex])
+	resultLast := ""
+	if lastIndex+1 < len(*str) {
+		resultLast = string(rs[lastIndex+1:])
+	}
+	if val, ok := MOCK_MAP[prefix]; ok {
+		var mockParams *[]string
+		if index+1 == lastIndex {
+			mockParams = nil
+		} else {
+			paramStr := string(rs[index+1:lastIndex])
+			if paramStrTrim := strings.TrimSpace(paramStr); paramStrTrim == "" {
+				mockParams = nil
+			} else {
+				mockParams = mockManager.getMockParams(&paramStrTrim)
+			}
+		}
+		result, err := val.MockVal(mockParams)
+		if err != nil {
+			return result, err
+		}
+		if resultPrefix != "" || resultLast != "" {
+			result, err = mockManager.warpResult(result, resultPrefix, resultLast)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if f == nil {
+			return result, nil
+		}
+		return f(result)
+	}
+	return nil, errors.New("not support " + prefix)
+}
+
 func (mockManager *MockManager) MockData(str *string) (interface{}, error) {
 	if *str == "" {
 		return nil, errors.New("mock str is empty")
