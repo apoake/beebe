@@ -35,7 +35,7 @@ const (
 	MOCK_IP            = "@ip"
 	MOCK_ADDRESS       = "@address"
 	MOCK_ZIP           = "@zip"
-	MOCK_PCIK          = "@pick"
+	MOCK_PICK          = "@pick"
 	MOCK_ARRAY         = "@arr"
 
 	STR_FEATURE_LOWER  = "lower"
@@ -80,7 +80,7 @@ func init() {
 	MOCK_MAP[MOCK_IP] = &IPMock{}
 	//MOCK_MAP[MOCK_ADDRESS] = MOCK_ADDRESS
 	MOCK_MAP[MOCK_ZIP] = &ZipMock{}
-	//MOCK_MAP[MOCK_PCIK] = MOCK_PCIK
+	MOCK_MAP[MOCK_PICK] = &PickMock{numMock: &NumMock{}}
 	MOCK_MAP[MOCK_ARRAY] = &ArrayMock{numMock: &NumMock{}}
 }
 
@@ -559,6 +559,25 @@ func (zipMock ZipMock) MockVal(params *[]string) (interface{}, error) {
 
 type PickMock struct {
 	BaseMock
+	numMock 		*NumMock
+}
+
+func (pickMock PickMock) MockVal(params *[]string) (interface{}, error) {
+	paramArr := *params
+	length := len(paramArr)
+	if length == 0 {
+		return nil, errors.New("no params")
+	} else if length == 1 {
+		rs := []rune(paramArr[0])
+		last := len(rs) - 1
+		return string(rs[1: last]), nil
+	}
+	rs := []rune(paramArr[0])
+	paramArr[0] = strings.TrimSpace(string(rs[1:]))
+	rs = []rune(paramArr[length -1])
+	paramArr[length - 1] = strings.TrimSpace(string(rs[:len(rs) -1]))
+	random := rand.New(rand.NewSource(time.Now().UnixNano()))
+	return paramArr[random.Intn(length)], nil
 }
 
 type IncrMock struct {
