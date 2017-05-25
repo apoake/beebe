@@ -81,7 +81,7 @@ func init() {
 	//MOCK_MAP[MOCK_ADDRESS] = MOCK_ADDRESS
 	MOCK_MAP[MOCK_ZIP] = &ZipMock{}
 	//MOCK_MAP[MOCK_PCIK] = MOCK_PCIK
-	//MOCK_MAP[MOCK_ARRAY] = MOCK_ARRAY
+	MOCK_MAP[MOCK_ARRAY] = &ArrayMock{numMock: &NumMock{}}
 }
 
 type MockManager struct{}
@@ -110,7 +110,15 @@ func (mockManager *MockManager) Mock(str *string) (interface{}, error) {
 	return str, nil
 }
 
-func (mockManager *MockManager) MockDataFunc(str *string, f func(interface{})(interface{}, error)) (interface{}, error) {
+func (mockManager *MockManager) IsSpecifiedAnnotation(str, mockStr string) bool {
+	rs := []rune(str)
+	index := strings.Index(str, MOCK_BRACKET_LEFT)
+	preIndex := strings.Index(str, MOCK_PREFIX)
+	prefixStr := string(rs[preIndex:index])
+	return strings.Contains(prefixStr, mockStr)
+}
+
+func (mockManager *MockManager) MockDataFunc(str *string, f func(interface{}) (interface{}, error)) (interface{}, error) {
 	if *str == "" {
 		return nil, errors.New("mock str is empty")
 	}
@@ -155,38 +163,7 @@ func (mockManager *MockManager) MockDataFunc(str *string, f func(interface{})(in
 }
 
 func (mockManager *MockManager) MockData(str *string) (interface{}, error) {
-	if *str == "" {
-		return nil, errors.New("mock str is empty")
-	}
-	index := strings.Index(*str, MOCK_BRACKET_LEFT)
-	preIndex := strings.Index(*str, MOCK_PREFIX)
-	lastIndex := mockManager.getFirstBracketRightIndex(str)
-	rs := []rune(*str)
-	prefix := string(rs[preIndex:index])
-	resultPrefix := string(rs[:preIndex])
-	resultLast := ""
-	if lastIndex+1 < len(*str) {
-		resultLast = string(rs[lastIndex + 1 :])
-	}
-	if val, ok := MOCK_MAP[prefix]; ok {
-		var mockParams *[]string
-		if index+1 == lastIndex {
-			mockParams = nil
-		} else {
-			paramStr := string(rs[index+1:lastIndex])
-			if paramStrTrim := strings.TrimSpace(paramStr); paramStrTrim == "" {
-				mockParams = nil
-			} else {
-				mockParams = mockManager.getMockParams(&paramStrTrim)
-			}
-		}
-		result, err := val.MockVal(mockParams)
-		if resultPrefix == "" && resultLast == "" {
-			return result, err
-		}
-		return mockManager.warpResult(result, resultPrefix, resultLast)
-	}
-	return nil, errors.New("not support " + prefix)
+	return mockManager.MockDataFunc(str, nil)
 }
 
 func (mockManager *MockManager) warpResult(res interface{}, start, end string) (interface{}, error) {
@@ -586,6 +563,15 @@ type PickMock struct {
 
 type IncrMock struct {
 	BaseMock
+}
+
+type ArrayMock struct {
+	BaseMock
+	numMock		*NumMock
+}
+
+func (arrayMock ArrayMock) MockVal(params *[]string) (interface{}, error) {
+	return arrayMock.numMock.MockVal(params)
 }
 
 func getValue(str string) (string, error) {
