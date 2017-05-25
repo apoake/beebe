@@ -26,7 +26,6 @@ const (
 	MOCK_COLOR         = "@color"
 	MOCK_RGB           = "@rgb"
 	MOCK_RGBA          = "@rgba"
-	MOCK_TEXT          = "@text"
 	MOCK_NAME          = "@name"
 	MOCK_FIRST         = "@first"
 	MOCK_LAST          = "@last"
@@ -140,11 +139,10 @@ func init() {
 	MOCK_MAP[MOCK_COLOR] = &ColorMock{}
 	MOCK_MAP[MOCK_RGB] = &RgbMock{}
 	MOCK_MAP[MOCK_RGBA] = &RgbaMock{}
-	//MOCK_MAP[MOCK_TEXT] = MOCK_TEXT
 	MOCK_MAP[MOCK_NAME] = &NameMock{firstMock: &FirstMock{}, lastMock: &LastMock{}}
 	MOCK_MAP[MOCK_FIRST] = &FirstMock{}
 	MOCK_MAP[MOCK_LAST] = &LastMock{}
-	//MOCK_MAP[MOCK_URL] = MOCK_URL
+	MOCK_MAP[MOCK_URL] = &UrlMock{}
 	MOCK_MAP[MOCK_EMAIL] = &EmailMock{Arr: &[][]int{[]int{10, 48}, []int{26, 97}, []int{26, 65}}}
 	MOCK_MAP[MOCK_IP] = &IPMock{}
 	MOCK_MAP[MOCK_REGION] = &RegionMock{}
@@ -623,6 +621,11 @@ func (lastMock LastMock) MockVal(params *[]string) (interface{}, error) {
 
 type UrlMock struct {
 	BaseMock
+}
+
+func (urlMock UrlMock) MockVal(params *[]string) (interface{}, error) {
+	str := "http://@str(5,8,lower).@str(2,3,lower)/@str(4,8,lower)"
+	return GetMockManager().MockData(&str)
 }
 
 type EmailMock struct {

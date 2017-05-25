@@ -67,3 +67,10 @@ func Test_RegionMock(t *testing.T) {
 	assert.Empty(t, err)
 	t.Log(result)
 }
+
+func Test_UrlMock(t *testing.T) {
+	str := "@url()"
+	result, err := mockManager.MockData(&str)
+	assert.Empty(t, err)
+	t.Log(result)
+}
