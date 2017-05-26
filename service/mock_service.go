@@ -68,7 +68,6 @@ func getResult(parameterArr *[]model.ParameterVo) (interface{}, error) {
 		}
 		switch dataType := parameterVo.DataType; {
 		case dataType <= model.DATA_TYPE_BOOLEAN && dataType >= model.DATA_TYPE_STRING:
-			// TODO 没有mock规则；是否设置默认规则
 			if parameterVo.Expression == "" {
 				resultMap[parameterVo.Identifier] = nil
 			} else if resultMap[parameterVo.Identifier], err = model.GetMockManager().MockData(&parameterVo.Expression); err != nil {

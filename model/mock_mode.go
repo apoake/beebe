@@ -21,7 +21,7 @@ const (
 	MOCK_NUMBER        = "@num"
 	MOCK_DATE          = "@date"
 	MOCK_IMAGE         = "@img"
-	MOCK_INCR          = "@incr"
+	//MOCK_INCR          = "@incr"
 	MOCK_BOOL          = "@bool"
 	MOCK_COLOR         = "@color"
 	MOCK_RGB           = "@rgb"
@@ -52,7 +52,6 @@ const (
 
 var StrMockFeatures map[string]int
 var MOCK_MAP map[string]MockType
-var REGEXP *regexp.Regexp = regexp.MustCompile(`^(@.+)\(((.+)[,]?)*\)$`)
 var mockManager *MockManager = &MockManager{}
 var firstArr []string = []string{"赵","钱","孙","李","周","吴","郑","王","冯","陈","褚","卫","蒋","沈","韩","杨","朱","秦","尤","许",
 								"何","吕","施","张","孔","曹","严","华","金","魏","陶","姜","戚","谢","邹","喻","柏","水","窦","章","云","苏","潘","葛","奚","范","彭","郎",
@@ -160,25 +159,25 @@ func GetMockManager() *MockManager {
 	return mockManager
 }
 
-func (mockManager *MockManager) Mock(str *string) (interface{}, error) {
-	if *str == "" {
-		return nil, errors.New("mock str is empty")
-	}
-	arr := REGEXP.FindStringSubmatch(*str)
-	length := len(arr)
-	if length < 2 {
-		return str, nil
-	}
-	mockType := arr[1]
-	if val, ok := MOCK_MAP[mockType]; ok {
-		if length > 2 {
-			arrtt := arr[2:]
-			return val.MockVal(&arrtt)
-		}
-		return val.MockVal(nil)
-	}
-	return str, nil
-}
+//func (mockManager *MockManager) Mock(str *string) (interface{}, error) {
+//	if *str == "" {
+//		return nil, errors.New("mock str is empty")
+//	}
+//	arr := REGEXP.FindStringSubmatch(*str)
+//	length := len(arr)
+//	if length < 2 {
+//		return str, nil
+//	}
+//	mockType := arr[1]
+//	if val, ok := MOCK_MAP[mockType]; ok {
+//		if length > 2 {
+//			arrtt := arr[2:]
+//			return val.MockVal(&arrtt)
+//		}
+//		return val.MockVal(nil)
+//	}
+//	return str, nil
+//}
 
 func (mockManager *MockManager) IsSpecifiedAnnotation(str, mockStr string) bool {
 	rs := []rune(str)
